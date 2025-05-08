@@ -17,7 +17,7 @@
 /**
  * Version metadata for the repository_pluginname plugin.
  *
- * @package   repository_pluginname
+ * @package   mod_pledge
  * @copyright 2025, author_fullname <author_link>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
