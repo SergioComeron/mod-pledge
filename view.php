@@ -22,61 +22,120 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/lib.php');
+require_once("$CFG->libdir/formslib.php");
 
+// Configurar la página (ten en cuenta que debes ajustar el contexto y otros parámetros según corresponda)
 
-require('../../config.php');
-// require_once(__DIR__.'/lib.php');
+global $USER;
 
-$id = required_param('id', PARAM_INT); // ID del módulo de curso (cm)
+class accept_form extends moodleform {
+    // Añadir elementos al formulario
+    public function definition() {
+        global $CFG;
+        $mform = $this->_form; // No olvides la barra baja
+        $mform->addElement('checkbox', 's', get_string('accept', 'pledge'));
+        $mform->addRule('s', get_string('needaccept', 'pledge'), 'required', null, 'client');
 
-$cm = get_coursemodule_from_id('pledge', $id, 0, false, MUST_EXIST);
-$course = get_course($cm->course);
-$context = context_module::instance($cm->id);
-require_login($course, true, $cm);
-
-$pledge = $DB->get_record('pledge', ['id' => $cm->instance], '*', MUST_EXIST);
-
-$PAGE->set_url('/mod/pledge/view.php', ['id' => $cm->id]);
-$PAGE->set_title(format_string($pledge->name));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_context($context);
-
-echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($pledge->name));
-
-// ¿Ya ha aceptado este usuario?
-$accepted = $DB->record_exists('pledge_acceptance', [
-    'pledgeid' => $pledge->id,
-    'userid' => $USER->id,
-]);
-
-if (!$accepted && optional_param('accept', 0, PARAM_BOOL)) {
-    // Guardar aceptación
-    $record = (object)[
-        'pledgeid' => $pledge->id,
-        'userid' => $USER->id,
-        'timeaccepted' => time()
-    ];
-    $DB->insert_record('pledge_acceptance', $record);
-
-    // Confirmación
-    echo $OUTPUT->notification(get_string('pledgeaccepted', 'mod_pledge'), 'notifysuccess');
-    $accepted = true;
+        $buttonarray = array();
+        $buttonarray[] = $mform->createElement('submit', 'submitbutton', get_string('continue', 'pledge'));
+        $mform->addGroup($buttonarray, 'buttonar', '', ' ', false);
+    }
+    function validation($data, $files) {
+        return array();
+    }
 }
 
-// Mostrar texto de introducción
-// Mostrar el código de honor configurado a nivel global
-$honorcode = get_config('mod_pledge', 'globalhonorcode');
-echo $OUTPUT->box(format_text($honorcode, FORMAT_HTML), 'generalbox');
+$id = required_param('id', PARAM_INT);
 
-// Mostrar botón si aún no se ha aceptado
-if (!$accepted) {
-    $accepturl = new moodle_url('/mod/pledge/view.php', ['id' => $cm->id, 'accept' => 1]);
-    echo $OUTPUT->single_button($accepturl, get_string('acceptpledge', 'mod_pledge'));
+$cm = get_coursemodule_from_id('pledge', $id, 0, false, MUST_EXIST);
+$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+$pledge = $DB->get_record('pledge', array('id' => $cm->instance), '*', MUST_EXIST);
+
+require_login($course, true, $cm);
+$PAGE->set_url('/mod/pledge/view.php', array('id' => $cm->id));
+
+$PAGE->set_title(format_string($pledge->name));
+$PAGE->set_heading(format_string($course->fullname));
+
+$contextmodule = context_module::instance($cm->id);
+
+// Procesar eliminación si se recibe el parámetro 'deleteid'
+$deleteid = optional_param('deleteid', 0, PARAM_INT);
+if ($deleteid && confirm_sesskey()) {
+    $DB->delete_records('pledge_acceptance', array('id' => $deleteid));
+    redirect($PAGE->url, get_string('deleted', 'pledge'));
+}
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading($pledge->name);
+
+$mform = new accept_form($PAGE->url);
+
+if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
+    // Mostrar una tabla con todos los pledge aceptados para este pledge.
+    $table = new html_table();
+    // Se añade columna extra para la eliminación.
+    $table->head = array(get_string('user'), get_string('timeaccepted', 'pledge'), get_string('delete', 'pledge'));
+    
+    $records = $DB->get_records('pledge_acceptance', array('pledgeid' => $pledge->id));
+    if ($records) {
+        foreach ($records as $record) {
+            $user = $DB->get_record('user',
+                array('id' => $record->userid),
+                'id, firstname, lastname, firstnamephonetic, lastnamephonetic, middlename, alternatename'
+            );
+            $fullname = fullname($user);
+            $deleteurl = new moodle_url($PAGE->url, array(
+                'deleteid' => $record->id,
+                'sesskey' => sesskey()
+            ));
+            // Agregamos un enlace de eliminación con confirmación.
+            $deleteaction = html_writer::link($deleteurl, get_string('delete', 'pledge'),
+                array('onclick' => 'return confirm("'.get_string('confirmdelete', 'pledge').'");')
+            );
+            $table->data[] = array($fullname, userdate($record->timeaccepted), $deleteaction);
+        }
+        echo html_writer::table($table);
+    } else {
+        echo html_writer::tag('p', get_string('nopledges', 'pledge'));
+    }
+} else if ($DB->record_exists('pledge_acceptance', array('pledgeid' => $pledge->id, 'userid' => $USER->id))) {
+    // Si el usuario ya ha aceptado, mostramos el mensaje correspondiente.
+    echo html_writer::tag('p', get_string('alreadyaccepted', 'pledge'));
+    if (!empty($pledge->linkedactivity)) {
+        // Supongamos que linkedactivity almacena el id del course module.
+        $cmactivity = $DB->get_record('course_modules', array('id' => $pledge->linkedactivity), '*', MUST_EXIST);
+        // Obtenemos el nombre del módulo consultando la tabla 'modules'
+        $moduleinfo = $DB->get_record('modules', array('id' => $cmactivity->module), 'name', MUST_EXIST);
+        // Construir la URL: usualmente es /mod/<modulename>/view.php?id=<course_module_id>
+        $activityurl = new moodle_url('/mod/' . $moduleinfo->name . '/view.php', array('id' => $cmactivity->id));
+        echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
+    }
+} else if ($data = $mform->get_data()) {
+    // Guardamos el registro de aceptación.
+    $record = new stdClass();
+    $record->pledgeid     = $pledge->id;
+    $record->userid       = $USER->id;
+    $record->timeaccepted = time();
+
+    $DB->insert_record('pledge_acceptance', $record);
+    echo html_writer::tag('p', get_string('pledgeaccepted', 'pledge'));
+
+    // Si se definió la actividad vinculada, se muestra el enlace para entrar.
+    if (!empty($pledge->linkedactivity)) {
+        // Supongamos que linkedactivity almacena el id del course module.
+        $cmactivity = $DB->get_record('course_modules', array('id' => $pledge->linkedactivity), '*', MUST_EXIST);
+        // Obtenemos el nombre del módulo consultando la tabla 'modules'
+        $moduleinfo = $DB->get_record('modules', array('id' => $cmactivity->module), 'name', MUST_EXIST);
+        // Construir la URL: usualmente es /mod/<modulename>/view.php?id=<course_module_id>
+        $activityurl = new moodle_url('/mod/' . $moduleinfo->name . '/view.php', array('id' => $cmactivity->id));
+        echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
+    }
 } else {
-    echo $OUTPUT->box(get_string('alreadyaccepted', 'mod_pledge'), 'generalbox');
+    // Si aún no se ha aceptado, se muestra el formulario.
+    $mform->display();
 }
 
 echo $OUTPUT->footer();

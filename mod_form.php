@@ -41,18 +41,18 @@ class mod_pledge_mod_form extends moodleform_mod {
 
         // Agregar selector para vincular una actividad del curso.
         $modinfo = get_fast_modinfo($COURSE);
-        $activities = array(0 => get_string('none', 'identifier'));  // opción "ninguna"
+        $activities = array(0 => get_string('none', 'pledge'));  // opción "ninguna"
         if (!empty($modinfo->cms)) {
             foreach ($modinfo->cms as $cm) {
-                // Excluir actividades de tipo 'identifier'
-                if ($cm->uservisible && $cm->modname !== 'identifier') {
+                // Excluir actividades de tipo 'pledge'
+                if ($cm->uservisible && $cm->modname !== 'pledge') {
                     $activities[$cm->id] = format_string($cm->name);
                 }
             }
         }
         asort($activities);
-        $mform->addElement('select', 'linkedactivity', get_string('selectactivity', 'identifier'), $activities);
-        $mform->addHelpButton('linkedactivity', 'linkedactivity', 'identifier');
+        $mform->addElement('select', 'linkedactivity', get_string('selectactivity', 'pledge'), $activities);
+        $mform->addHelpButton('linkedactivity', 'linkedactivity', 'pledge');
         $mform->setDefault('linkedactivity', 0);        
         $mform->addRule('linkedactivity', null, 'required', null, 'client');
 
