@@ -73,25 +73,34 @@ function pledge_supports($feature) {
  * will create a new instance and return the id number
  * of the new instance.
  *
- * @param stdClass $pledge Submitted data from the form in mod_form.php
+ * @param stdClass $data Submitted data from the form in mod_form.php
  * @param mod_pledge_mod_form $mform The form instance itself (if needed)
  * @return int The id of the newly inserted pledge record
  */
-function pledge_add_instance($pledge,  $mform = null) {
-    global $CFG, $DB;
-    require_once($CFG->dirroot.'/mod/pledge/locallib.php');
-
-    $pledge->timecreated = time();
-    $cmid       = $pledge->coursemodule;
-
-    $pledge->id = $DB->insert_record('pledge', $pledge);
-    pledge_update_calendar($pledge, $cmid);
-    // $course = $DB->get_record('course', array('id'=>$pledge->course));
-    // if ($course->enablecompletion==0){
-    //   $course->enablecompletion = 1;
-    //   $DB->update_record('course', $course);
-    // }
-    return $pledge->id;
+function pledge_add_instance($data, $mform) {
+    global $DB;
+    
+    // Si se ha seleccionado una actividad vinculada y no es "none" (valor 0)
+    if (!empty($data->linkedactivity) && $data->linkedactivity != 0) {
+        // Recuperar el course module de la actividad vinculada (asumiendo que es un cuestionario)
+        $cm = $DB->get_record('course_modules', array('id' => $data->linkedactivity), '*', MUST_EXIST);
+        // Conocer el tipo de módulo (debe ser 'quiz')
+        $moduleinfo = $DB->get_record('modules', array('id' => $cm->module), 'name', MUST_EXIST);
+        if ($moduleinfo->name === 'quiz') {
+            // Recuperamos el nombre del cuestionario desde la tabla 'quiz'
+            $quiz = $DB->get_record('quiz', array('id' => $cm->instance), 'name', MUST_EXIST);
+            // Concatenar el nombre del pledge con el nombre del cuestionario
+            $data->name = $data->name . ' (' . $quiz->name . ')';
+        }
+    }
+    
+    // Asignar los tiempos de creación y modificación.
+    $data->timecreated = time();
+    $data->timemodified = time();
+    
+    // Guardamos el registro del pledge con el nombre modificado.
+    $data->id = $DB->insert_record('pledge', $data);
+    return $data->id;
 }
 
 /**
@@ -184,33 +193,23 @@ function pledge_delete_instance($id) {
     if (! $pledge = $DB->get_record('pledge', array('id' => $id))) {
         return false;
     }
-    // $cm = get_coursemodule_from_id('pledge', $id, 0, false, MUST_EXIST);
+    // Obtenemos el course module
     $cm = get_coursemodule_from_instance('pledge', $pledge->id, $pledge->course, false, MUST_EXIST);
 
     $context = context_course::instance($pledge->course);
     $result = true;
-    $attempts = $DB->get_records('pledge_acceptance', array('pledge'=>$pledge->id));
+    
+    // Eliminar todos los registros de aceptación de este pledge.
+    $DB->delete_records('pledge_acceptance', array('pledge' => $pledge->id));
+
+    // Borramos el registro principal del pledge.
     if (! $DB->delete_records('pledge', array('id' => $pledge->id))) {
-        // $DB->delete_records('pledge_attepts', array('pledge' => $id));
         $result = false;
     }
-    foreach($attempts as $attempt) {
-        delete_attempt_pledge_pledge($attempt->id, $context, $cm);
-    }
+    // En caso de que tengas procesos adicionales para borrar datos relacionados (por ejemplo, eventos),
+    // puedes llamarlos aquí.
 
     return $result;
-}
-
-function delete_attempt_pledge_pledge_pledge($idattempt, $context, $cm){
-    global $DB;
-    $attempt = $DB->get_record('pledge_acceptance', array('id' => $idattempt));
-    if (!$attempt) {
-        return false;
-    }
-    
-    // set_module_unviewed($cm, $attempt->userid); --> No se que hacía esto aqui, peta cuando se borran cursos con 
-    // pledges que tengan intentos. Creo que se me ha colado sin querer, xq no tiene sentido marcar como visto en un borrado.
-    $DB->delete_records('pledge_acceptance', array('id' => $idattempt));
 }
 
 /**

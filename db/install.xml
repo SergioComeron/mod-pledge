@@ -26,6 +26,9 @@
                 <FIELD NAME="pledgeid" TYPE="int" LENGTH="10" NOTNULL="true"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
                 <FIELD NAME="timeaccepted" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <!-- Nuevo campo para el justificante, guardando el timestamp en el que se envía.
+                     Se permite valor nulo para indicar que aún no se ha enviado -->
+                <FIELD NAME="justificante" TYPE="int" LENGTH="10" NOTNULL="false" />
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

@@ -57,3 +57,4 @@ $string['pledge:viewattempts'] = 'View Attempts';
 $string['timeaccepted'] = 'Time Accepted';
 $string['deleted'] = 'Deleted';
 $string['delete'] = 'Delete';
+$string['selectlinkedactivityrequired'] = 'Please select a linked activity.';

@@ -64,16 +64,20 @@ $contextmodule = context_module::instance($cm->id);
 // Procesar eliminación si se recibe el parámetro 'deleteid'
 $deleteid = optional_param('deleteid', 0, PARAM_INT);
 if ($deleteid && confirm_sesskey()) {
+    $user = $DB->get_record('pledge_acceptance', array('id' => $deleteid), 'userid');
     $DB->delete_records('pledge_acceptance', array('id' => $deleteid));
+    // Actualizamos el estado de finalización a "incompleto" para el pledge.
     redirect($PAGE->url, get_string('deleted', 'pledge'));
 }
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading($pledge->name);
+// echo $OUTPUT->header();
+// echo $OUTPUT->heading($pledge->name);
 
 $mform = new accept_form($PAGE->url);
 
 if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
+    echo $OUTPUT->header();
+
     // Mostrar una tabla con todos los pledge aceptados para este pledge.
     $table = new html_table();
     // Se añade columna extra para la eliminación.
@@ -102,6 +106,7 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
         echo html_writer::tag('p', get_string('nopledges', 'pledge'));
     }
 } else if ($DB->record_exists('pledge_acceptance', array('pledgeid' => $pledge->id, 'userid' => $USER->id))) {
+    echo $OUTPUT->header();
     // Si el usuario ya ha aceptado, mostramos el mensaje correspondiente.
     echo html_writer::tag('p', get_string('alreadyaccepted', 'pledge'));
     if (!empty($pledge->linkedactivity)) {
@@ -119,21 +124,26 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     $record->pledgeid     = $pledge->id;
     $record->userid       = $USER->id;
     $record->timeaccepted = time();
-
     $DB->insert_record('pledge_acceptance', $record);
+
+    // Marcamos el pledge como completado utilizando el course module del pledge.
+    $completion = new completion_info($course);
+    $completion->set_module_viewed($cm);
+    echo $OUTPUT->header();
+
     echo html_writer::tag('p', get_string('pledgeaccepted', 'pledge'));
 
-    // Si se definió la actividad vinculada, se muestra el enlace para entrar.
+    
+
+    // Si hay actividad vinculada y se desea mostrar un enlace para entrar, se puede dejar opcional.
     if (!empty($pledge->linkedactivity)) {
-        // Supongamos que linkedactivity almacena el id del course module.
         $cmactivity = $DB->get_record('course_modules', array('id' => $pledge->linkedactivity), '*', MUST_EXIST);
-        // Obtenemos el nombre del módulo consultando la tabla 'modules'
         $moduleinfo = $DB->get_record('modules', array('id' => $cmactivity->module), 'name', MUST_EXIST);
-        // Construir la URL: usualmente es /mod/<modulename>/view.php?id=<course_module_id>
         $activityurl = new moodle_url('/mod/' . $moduleinfo->name . '/view.php', array('id' => $cmactivity->id));
         echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
     }
 } else {
+    echo $OUTPUT->header();
     // Si aún no se ha aceptado, se muestra el formulario.
     $mform->display();
 }

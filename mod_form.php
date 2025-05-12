@@ -44,8 +44,8 @@ class mod_pledge_mod_form extends moodleform_mod {
         $activities = array(0 => get_string('none', 'pledge'));  // opción "ninguna"
         if (!empty($modinfo->cms)) {
             foreach ($modinfo->cms as $cm) {
-                // Excluir actividades de tipo 'pledge'
-                if ($cm->uservisible && $cm->modname !== 'pledge') {
+                // Mostrar solo actividades tipo 'quiz'
+                if ($cm->uservisible && $cm->modname === 'quiz') {  
                     $activities[$cm->id] = format_string($cm->name);
                 }
             }
@@ -53,11 +53,21 @@ class mod_pledge_mod_form extends moodleform_mod {
         asort($activities);
         $mform->addElement('select', 'linkedactivity', get_string('selectactivity', 'pledge'), $activities);
         $mform->addHelpButton('linkedactivity', 'linkedactivity', 'pledge');
-        $mform->setDefault('linkedactivity', 0);        
-        $mform->addRule('linkedactivity', null, 'required', null, 'client');
+        $mform->setDefault('linkedactivity', 0);
+        // Se elimina la regla 'required' estándar para aplicar validación personalizada.
+        // $mform->addRule('linkedactivity', null, 'required', null, 'client');
 
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
+    }
+
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        // Validamos que se haya seleccionado una actividad (distinta de la opción "none" que es 0)
+        if (empty($data['linkedactivity']) || $data['linkedactivity'] == 0) {
+            $errors['linkedactivity'] = get_string('selectlinkedactivityrequired', 'pledge');
+        }
+        return $errors;
     }
 }
 
