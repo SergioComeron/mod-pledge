@@ -61,3 +61,5 @@ $string['selectlinkedactivityrequired'] = 'Please select a linked activity.';
 $string['errornodocument'] = 'No document was provided.';
 $string['errornofechasconfiguradas'] = 'No dates have been configured.';
 $string['errornocodigoexamen'] = 'No exam code was provided.';
+$string['usernotfound'] = 'User not found';
+$string['errormodulonotquiz'] = 'Error: Module is not a quiz.';

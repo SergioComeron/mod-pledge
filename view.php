@@ -126,26 +126,22 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     $record->timeaccepted = time();
     $DB->insert_record('pledge_acceptance', $record);
 
-    // Lanzar la tarea sendproof.
+    // Lanzar la tarea sendjustification.
     // Crear una instancia de la tarea adhoc.
     $task = new \mod_pledge\task\sendjustification();
-    // Establecer los datos personalizados que necesita la tarea.
+    // Establecer los datos personalizados si se necesitan.
     $customdata = array(
         'pledgeid' => $pledge->id
     );
     $task->set_custom_data($customdata);
     // Encolar la tarea.
     \core\task\manager::queue_adhoc_task($task);
-    \core\task\manager::queue_adhoc_task(new \mod_pledge\task\sendproof_task($eventdata));
 
     // Marcamos el pledge como completado utilizando el course module del pledge.
     $completion = new completion_info($course);
     $completion->set_module_viewed($cm);
     echo $OUTPUT->header();
-
     echo html_writer::tag('p', get_string('pledgeaccepted', 'pledge'));
-
-    
 
     // Si hay actividad vinculada y se desea mostrar un enlace para entrar, se puede dejar opcional.
     if (!empty($pledge->linkedactivity)) {

@@ -18,6 +18,7 @@ namespace mod_pledge\task;
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->libdir . '/pdflib.php');
 /**
  * Class sendjustification
  *
@@ -59,45 +60,55 @@ class sendjustification extends \core\task\adhoc_task {
      * @return bool Devuelve true si el envío fue exitoso, false en caso contrario.
      */
     private static function send_pdf_to_user($userid, $pledgeid) {
-        // Aquí debes implementar la lógica necesaria para generar el PDF y enviarlo, por ejemplo, por correo.
-        // Este es un ejemplo simplificado que siempre retorna true.
-        
-        // Ejemplo:
-        // $pdf = generate_pdf($pledgeid); // Función que genera el PDF.
-        // $user = get_complete_user_data('id', $userid); // Obtiene datos del usuario.
-        // $sent = email_to_user($user, $from, "Asunto", "Mensaje", $pdf);
-        // return $sent;
-        $user = $DB->get_record('user', array('id' => $userid));
+        global $DB, $CFG;
 
-        $dniprs = self::obtener_numdocumento_ldap($user->username);
-        if (!$dniprs) {
-            throw new \moodle_exception('errornodocument', 'pledge');
+        $user = $DB->get_record('user', array('id' => $userid));
+        if (!$user) {
+            throw new \moodle_exception('usernotfound', 'pledge');
         }
 
-        // Obtener la actividad vinculada al pledge.
+        // $dniprs = obtener_numdocumento_ldap($user->username);
+        // if (!$dniprs) {
+        //     throw new \moodle_exception('errornodocument', 'pledge');
+        // }
+        $dniprs = '12345678A'; // Simulación de número de documento para pruebas.
+
+        // Primero, obtener el registro de pledge_acceptance.
+        $pledgeacceptance = $DB->get_record('pledge_acceptance', array('pledgeid' => $pledgeid, 'userid' => $userid), '*', MUST_EXIST);
+
+        // Obtener la actividad vinculada al pledge usando el campo pledgeid del registro.
         $pledge = $DB->get_record('pledge', array('id' => $pledgeacceptance->pledgeid), '*', MUST_EXIST);
-        $cm = get_coursemodule_from_instance('pledge', $pledge->id, $pledge->course, false, MUST_EXIST);
-        $context = \context_module::instance($cm->id);
+        
         // Obtener el nombre de la asignatura vinculada al pledge.
         $course = $DB->get_record('course', array('id' => $pledge->course), '*', MUST_EXIST);
         $assnomid1 = $course->fullname;
 
         // Verificar y obtener las fechas de inicio y fin configuradas en la actividad vinculada al pledge.
-        if (empty($pledge->timeopen) || empty($pledge->timeclose)) {
+        $cm = $DB->get_record('course_modules', array('id' => $pledge->linkedactivity), '*', MUST_EXIST);
+        // Conocer el tipo de módulo (debe ser 'quiz')
+        $moduleinfo = $DB->get_record('modules', array('id' => $cm->module), 'name', MUST_EXIST);
+        if ($moduleinfo->name === 'quiz') {
+            $quiz = $DB->get_record('quiz', array('id' => $cm->instance), '*', MUST_EXIST);
+            $fechainicio = $quiz->timeopen;
+            $fechafin   = $quiz->timeclose;
+        } else {
+            throw new \moodle_exception('errormodulonotquiz', 'pledge');
+        }
+
+        if (empty($fechainicio) || empty($fechafin)) {
             throw new \moodle_exception('errornofechasconfiguradas', 'pledge');
         }
 
-        $fechainicio = userdate($pledge->timeopen, '%d/%m/%Y %H:%M');
-        $fechafin = userdate($pledge->timeclose, '%d/%m/%Y %H:%M');
+        $fechainicio = userdate($fechainicio, '%d/%m/%Y %H:%M');
+        $fechafin = userdate($fechafin, '%d/%m/%Y %H:%M');
 
         // Extraer el código de examen del nombre de la actividad vinculada al pledge.
-        if (preg_match('/#(.*?)#/', $pledge->name, $matches)) {
+        if (preg_match('/#(.*?)#/', $quiz->name, $matches)) {
             $exacodnum = $matches[1]; // Código de examen extraído.
         } else {
             throw new \moodle_exception('errornocodigoexamen', 'pledge');
         }
 
-        $pledgeacceptance = $DB->get_record('pledge_acceptance', array('id' => $pledgeid));
         // Crear el PDF
         $fs = get_file_storage();
         $pdf = new \pdf();
@@ -170,6 +181,7 @@ class sendjustification extends \core\task\adhoc_task {
 
         // Enviar correo
         $subject = "Justificante - {$user->username}";
+        $sede = "Online"; // Definir la sede
 
         // Preparar mensajes para texto plano y HTML.
         $message_plain = "Estimado/a {$user->firstname},\n\nAdjunto le remitimos el justificante de asistencia al examen que se realizó en la fecha: " . $fechainicio . " en la sede: " . $sede . ".\n\nSaludos cordiales.";
@@ -178,7 +190,7 @@ class sendjustification extends \core\task\adhoc_task {
         // Enviar correo con adjunto
         $emailresult = email_to_user(
             $user,
-            \core_user::get_support_user(), // Aseguramos el namespace global
+            \core_user::get_support_user(),
             $subject,
             $message_plain,
             $message_html,
@@ -190,7 +202,7 @@ class sendjustification extends \core\task\adhoc_task {
             throw new \moodle_exception('errorcannotemail', 'local_recibeexamen');
         }
 
-        // Eliminar temporal
+        // Eliminar archivo temporal
         @unlink($pdfpath);
 
         // Marcar como procesado
