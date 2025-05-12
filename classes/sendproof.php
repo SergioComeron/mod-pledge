@@ -67,9 +67,37 @@ class sendjustification extends \core\task\adhoc_task {
         // $user = get_complete_user_data('id', $userid); // Obtiene datos del usuario.
         // $sent = email_to_user($user, $from, "Asunto", "Mensaje", $pdf);
         // return $sent;
+        $user = $DB->get_record('user', array('id' => $userid));
+
+        $dniprs = self::obtener_numdocumento_ldap($user->username);
+        if (!$dniprs) {
+            throw new \moodle_exception('errornodocument', 'pledge');
+        }
+
+        // Obtener la actividad vinculada al pledge.
+        $pledge = $DB->get_record('pledge', array('id' => $pledgeacceptance->pledgeid), '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('pledge', $pledge->id, $pledge->course, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+        // Obtener el nombre de la asignatura vinculada al pledge.
+        $course = $DB->get_record('course', array('id' => $pledge->course), '*', MUST_EXIST);
+        $assnomid1 = $course->fullname;
+
+        // Verificar y obtener las fechas de inicio y fin configuradas en la actividad vinculada al pledge.
+        if (empty($pledge->timeopen) || empty($pledge->timeclose)) {
+            throw new \moodle_exception('errornofechasconfiguradas', 'pledge');
+        }
+
+        $fechainicio = userdate($pledge->timeopen, '%d/%m/%Y %H:%M');
+        $fechafin = userdate($pledge->timeclose, '%d/%m/%Y %H:%M');
+
+        // Extraer el código de examen del nombre de la actividad vinculada al pledge.
+        if (preg_match('/#(.*?)#/', $pledge->name, $matches)) {
+            $exacodnum = $matches[1]; // Código de examen extraído.
+        } else {
+            throw new \moodle_exception('errornocodigoexamen', 'pledge');
+        }
 
         $pledgeacceptance = $DB->get_record('pledge_acceptance', array('id' => $pledgeid));
-        $user = $DB->get_record('user', array('id' => $userid));
         // Crear el PDF
         $fs = get_file_storage();
         $pdf = new \pdf();
@@ -110,11 +138,10 @@ class sendjustification extends \core\task\adhoc_task {
         <div class="info">
             <strong>Información relativa al examen:</strong><br><br>
             <strong>Código examen:</strong> ' . $exacodnum . '<br>
-            <strong>Titulación:</strong> '. $planomid1 .'<br>
             <strong>Asignatura:</strong> ' . $assnomid1 . '<br>
             <strong>Fecha y hora de inicio:</strong> ' . $fechainicio . '<br>
             <strong>Fecha y hora de finalización:</strong> ' . $fechafin . '<br>
-            <strong>Sede:</strong> ' . $sede . '<br>
+            <strong>Sede: </strong>Online<br>
         </div><br><br>
 
         <div class="text">Firma y sello</div><br><br>
@@ -170,5 +197,41 @@ class sendjustification extends \core\task\adhoc_task {
         $pledgeacceptance->justificante = time();
         $DB->update_record('pledge_acceptance', $pledgeacceptance);
         return true;
+    }
+
+    function obtener_numdocumento_ldap(string $uid): ?string {
+        $host = "ldap://172.21.4.20:389";
+        $base_dn = "cn=users,dc=udima,dc=es";
+        $filtro = "(uid=$uid)";
+        $atributos = ["numdocumento"];
+
+        $ldapconn = ldap_connect($host);
+        ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, 3);
+
+        if (!$ldapconn) {
+            debugging("No se pudo conectar al servidor LDAP", DEBUG_DEVELOPER);
+            return null;
+        }
+
+        // No se necesita autenticación, bind anónimo
+        if (!ldap_bind($ldapconn)) {
+            debugging("Fallo en el bind LDAP", DEBUG_DEVELOPER);
+            return null;
+        }
+
+        $resultado = ldap_search($ldapconn, $base_dn, $filtro, $atributos);
+        if (!$resultado) {
+            debugging("Error en la búsqueda LDAP", DEBUG_DEVELOPER);
+            return null;
+        }
+
+        $entradas = ldap_get_entries($ldapconn, $resultado);
+        ldap_unbind($ldapconn);
+
+        if ($entradas["count"] > 0 && isset($entradas[0]["numdocumento"][0])) {
+            return $entradas[0]["numdocumento"][0];
+        }
+
+        return null; // No encontrado
     }
 }
