@@ -126,16 +126,18 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     $record->timeaccepted = time();
     $DB->insert_record('pledge_acceptance', $record);
 
-    // Lanzar la tarea sendjustification.
-    // Crear una instancia de la tarea adhoc.
-    $task = new \mod_pledge\task\sendjustification();
-    // Establecer los datos personalizados si se necesitan.
-    $customdata = array(
-        'pledgeid' => $pledge->id
-    );
-    $task->set_custom_data($customdata);
-    // Encolar la tarea.
-    \core\task\manager::queue_adhoc_task($task);
+    if (get_config('mod_pledge', 'sendjustificantes')) {
+        // Lanzar la tarea sendjustification.
+        // Crear una instancia de la tarea adhoc.
+        $task = new \mod_pledge\task\sendjustification();
+        // Establecer los datos personalizados si se necesitan.
+        $customdata = array(
+            'pledgeid' => $pledge->id
+        );
+        $task->set_custom_data($customdata);
+        // Encolar la tarea.
+        \core\task\manager::queue_adhoc_task($task);
+    }
 
     // Marcamos el pledge como completado utilizando el course module del pledge.
     $completion = new completion_info($course);
