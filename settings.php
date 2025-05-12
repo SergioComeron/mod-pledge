@@ -31,4 +31,11 @@ if ($ADMIN->fulltree) {
         get_string('globalhonorcode_desc', 'mod_pledge'),
         "Me comprometo a realizar esta actividad de manera honesta, sin recibir ni ofrecer ayuda externa."
     ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'mod_pledge/sendjustificantes',
+        get_string('sendjustificantes', 'mod_pledge'),
+        get_string('sendjustificantes_desc', 'mod_pledge'),
+        0
+    ));
 }

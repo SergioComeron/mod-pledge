@@ -63,3 +63,5 @@ $string['errornofechasconfiguradas'] = 'No dates have been configured.';
 $string['errornocodigoexamen'] = 'No exam code was provided.';
 $string['usernotfound'] = 'User not found';
 $string['errormodulonotquiz'] = 'Error: Module is not a quiz.';
+$string['sendjustificantes'] = 'Send supporting documents';
+$string['sendjustificantes_desc'] = 'Check this option to send supporting documents automatically.';
