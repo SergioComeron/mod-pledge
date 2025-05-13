@@ -67,11 +67,11 @@ class sendjustification extends \core\task\adhoc_task {
             throw new \moodle_exception('usernotfound', 'pledge');
         }
 
-        // $dniprs = obtener_numdocumento_ldap($user->username);
-        // if (!$dniprs) {
-        //     throw new \moodle_exception('errornodocument', 'pledge');
-        // }
-        $dniprs = '12345678A'; // Simulación de número de documento para pruebas.
+        $dniprs = self::obtener_numdocumento_ldap($user->username);
+         if (!$dniprs) {
+             throw new \moodle_exception('errornodocument', 'pledge');
+        }
+        // $dniprs = '12345678A'; // Simulación de número de documento para pruebas.
 
         // Primero, obtener el registro de pledge_acceptance.
         $pledgeacceptance = $DB->get_record('pledge_acceptance', array('pledgeid' => $pledgeid, 'userid' => $userid), '*', MUST_EXIST);
@@ -206,12 +206,12 @@ class sendjustification extends \core\task\adhoc_task {
         @unlink($pdfpath);
 
         // Marcar como procesado
-        $pledgeacceptance->justificante = time();
-        $DB->update_record('pledge_acceptance', $pledgeacceptance);
+        // $pledgeacceptance->justificante = time();
+        // $DB->update_record('pledge_acceptance', $pledgeacceptance);
         return true;
     }
 
-    function obtener_numdocumento_ldap(string $uid): ?string {
+    private static function obtener_numdocumento_ldap(string $uid) {
         $host = "ldap://172.21.4.20:389";
         $base_dn = "cn=users,dc=udima,dc=es";
         $filtro = "(uid=$uid)";
