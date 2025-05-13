@@ -154,6 +154,13 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     }
 } else {
     echo $OUTPUT->header();
+    // Mostrar el mensaje del código de honor guardado en globalhonorcode en una caja bonita.
+    $globalhonorcode = get_config('mod_pledge', 'globalhonorcode');
+    if (!empty($globalhonorcode)) {
+        echo html_writer::start_tag('div', array('class' => 'card my-3'));
+        echo html_writer::tag('div', format_text($globalhonorcode), array('class' => 'card-body'));
+        echo html_writer::end_tag('div');
+    }
     // Si aún no se ha aceptado, se muestra el formulario.
     $mform->display();
 }
