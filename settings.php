@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    $settings->add(new admin_setting_configtextarea(
+    $settings->add(new admin_setting_confightmleditor(
         'mod_pledge/globalhonorcode',
         get_string('globalhonorcode', 'mod_pledge'),
         get_string('globalhonorcode_desc', 'mod_pledge'),
