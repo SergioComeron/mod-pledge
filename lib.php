@@ -43,7 +43,7 @@ function pledge_supports($feature) {
             case FEATURE_SHOW_DESCRIPTION:
                 return false;
             case FEATURE_BACKUP_MOODLE2:
-                return true;
+                return false;
             case FEATURE_MOD_PURPOSE:
                 return MOD_PURPOSE_ADMINISTRATION;
             default:
