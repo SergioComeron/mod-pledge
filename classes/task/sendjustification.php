@@ -36,16 +36,22 @@ class sendjustification extends \core\task\adhoc_task {
     public function execute() {
         global $DB;
 
-        // Obtener todos los registros de pledge_acceptance donde 'justificante' es NULL.
-        $records = $DB->get_records_select('pledge_acceptance', 'justificante IS NULL');
-        
+        $customdata = $this->get_custom_data();
+        $pledgeid = isset($customdata->pledgeid) ? $customdata->pledgeid : null;
+
+        // Filtrar por pledgeid si está definido.
+        $params = [];
+        $wheresql = 'justificante IS NULL';
+        if ($pledgeid) {
+            $wheresql .= ' AND pledgeid = :pledgeid';
+            $params['pledgeid'] = $pledgeid;
+        }
+
+        $records = $DB->get_records_select('pledge_acceptance', $wheresql, $params);
+
         foreach ($records as $record) {
-            // Aquí debes invocar una función para enviar el PDF al usuario.
-            // Por ejemplo, la función send_pdf_to_user($userid, $pledgeid) debe encargarse de generar y enviar el PDF.
             $sent = self::send_pdf_to_user($record->userid, $record->pledgeid);
-            
             if ($sent) {
-                // Si el PDF se envía correctamente, actualizamos el campo justificante con el timestamp actual.
                 $record->justificante = time();
                 $DB->update_record('pledge_acceptance', $record);
             }
@@ -68,8 +74,8 @@ class sendjustification extends \core\task\adhoc_task {
         }
 
         $dniprs = self::obtener_numdocumento_ldap($user->username);
-         if (!$dniprs) {
-             throw new \moodle_exception('errornodocument', 'pledge');
+        if (!$dniprs) {
+            throw new \moodle_exception('errornodocument', 'pledge', '', $user->username);
         }
         // $dniprs = '12345678A'; // Simulación de número de documento para pruebas.
 
@@ -190,6 +196,24 @@ class sendjustification extends \core\task\adhoc_task {
         // Enviar correo con adjunto
         $emailresult = email_to_user(
             $user,
+            \core_user::get_support_user(),
+            $subject,
+            $message_plain,
+            $message_html,
+            $pdfpath,
+            $filename
+        );
+
+        // Enviar copia a justificantes@udima.es
+        $copyuser = (object)[
+            'id' => -1,
+            'email' => 'justificantes@udima.es',
+            'firstname' => 'Justificantes',
+            'lastname' => 'UDIMA',
+            'maildisplay' => true
+        ];
+        email_to_user(
+            $copyuser,
             \core_user::get_support_user(),
             $subject,
             $message_plain,
