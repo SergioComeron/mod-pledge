@@ -33,7 +33,7 @@ require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/backup_pledge_stepslib.
  * Provides all the settings and steps to perform complete restore of the activity.
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_pledge_activity_task extends backup_activity_task {
@@ -49,7 +49,8 @@ class backup_pledge_activity_task extends backup_activity_task {
      */
     protected function define_my_steps() {
         // We have just one structure step here.
-        $this->add_step(new restore_pledge_activity_structure_step('pledge_structure', 'pledge.xml'));
+        $this->add_step(new backup_pledge_activity_structure_step('pledge_structure', 'pledge.xml'));
+
     }
 
     /**

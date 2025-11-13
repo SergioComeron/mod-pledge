@@ -15,37 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * TODO describe file restore_pledge_stepslib
+ * Restore structure step for mod_pledge
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
- defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib.php');
+defined('MOODLE_INTERNAL') || die();
 
 /**
- * Restore task for the pledge activity module
- *
- * Provides all the settings and steps to perform complete restore of the activity.
- *
- * @package   mod_pledge
- * @category  backup
- * @copyright 2016 Your Name <your@email.address>
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Structure step to restore one pledge activity
  */
+class restore_pledge_activity_structure_step extends restore_activity_structure_step {
 
- class restore_pledge_activity_structure_step extends restore_activity_structure_step {
-
-    /**
-     * Defines structure of path elements to be processed during the restore
-     *
-     * @return array of {@link restore_path_element}
-     */
     protected function define_structure() {
-
         $paths = array();
         $userinfo = $this->get_setting_value('userinfo');
 
@@ -54,15 +38,9 @@ require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib
             $paths[] = new restore_path_element('pledge_acceptance', '/activity/pledge/acceptances/acceptance');
         }
 
-        // Return the paths wrapped into standard activity structure.
         return $this->prepare_activity_structure($paths);
     }
 
-    /**
-     * Process the given restore path element data
-     *
-     * @param array $data parsed element data
-     */
     protected function process_pledge($data) {
         global $DB;
 
@@ -74,11 +52,6 @@ require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib
             $data->timecreated = time();
         }
 
-        if (empty($data->timemodified)) {
-            $data->timemodified = time();
-        }
-
-        // Create the pledge instance.
         $newitemid = $DB->insert_record('pledge', $data);
         $this->apply_activity_instance($newitemid);
     }
@@ -87,21 +60,32 @@ require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib
         global $DB;
 
         $data = (object)$data;
-        $data->course = $this->get_courseid();
+        $oldid = $data->id;
 
-        $data->pledge = $this->get_new_parentid('pledge');
+        $data->pledgeid = $this->get_new_parentid('pledge');
         $data->userid = $this->get_mappingid('user', $data->userid);
 
-        $newitemid = $DB->insert_record('pledge_acceptance', $data);
-        // No need to save this mapping as far as nothing depend on it
-        // (child paths, file areas nor links decoder)
+        $exists = $DB->record_exists('pledge_acceptance', [
+            'pledgeid' => $data->pledgeid,
+            'userid' => $data->userid
+        ]);
+
+        if (!$exists) {
+            $newitemid = $DB->insert_record('pledge_acceptance', $data);
+            $this->set_mapping('pledge_acceptance', $oldid, $newitemid);
+        } else {
+            $existing = $DB->get_record('pledge_acceptance', [
+                'pledgeid' => $data->pledgeid,
+                'userid' => $data->userid
+            ], 'id');
+            if ($existing) {
+                $this->set_mapping('pledge_acceptance', $oldid, $existing->id);
+            }
+        }
     }
 
-    /**
-     * Post-execution actions
-     */
     protected function after_execute() {
-        // Add pledge related files, no need to match by itemname (just internally handled context).
-        $this->add_related_files('mod_pledge', 'acceptance', null);
+        // Add pledge related files
+        $this->add_related_files('mod_pledge', 'intro', null);
     }
 }

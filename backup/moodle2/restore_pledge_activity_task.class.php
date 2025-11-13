@@ -30,7 +30,7 @@ require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib
  *
  * @package   mod_pledge
  * @category  backup
- * @copyright 2016 Your Name <your@email.address>
+ * @copyright 2025 Sergio Comerón <info@sergiocomeron.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class restore_pledge_activity_task extends restore_activity_task {

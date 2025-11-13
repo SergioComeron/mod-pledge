@@ -18,7 +18,7 @@
  * TODO describe file backup_pledge_stepslib
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -52,7 +52,7 @@ class backup_pledge_activity_structure_step extends backup_activity_structure_st
         // Define child element for acceptances.
         $acceptances = new backup_nested_element('acceptances');
         $acceptance = new backup_nested_element('acceptance', array('id'), array(
-            'userid', 'timeaccepted', 'justificante'
+            'pledgeid', 'userid', 'timeaccepted', 'justificante'
         ));
 
         // Build the tree structure.

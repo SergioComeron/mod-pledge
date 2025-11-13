@@ -20,7 +20,7 @@
  * Documentation: {@link https://moodledev.io/docs/apis/plugintypes/mod}
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -43,7 +43,7 @@ function pledge_supports($feature) {
             case FEATURE_SHOW_DESCRIPTION:
                 return false;
             case FEATURE_BACKUP_MOODLE2:
-                return false;
+                return true;
             case FEATURE_MOD_PURPOSE:
                 return MOD_PURPOSE_ADMINISTRATION;
             default:
