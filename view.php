@@ -61,6 +61,29 @@ $PAGE->set_heading(format_string($course->fullname));
 
 $contextmodule = context_module::instance($cm->id);
 
+// Verificar restricción de tiempo solo para estudiantes (no para profesores)
+if (!has_capability('mod/pledge:viewattempts', $contextmodule)) {
+    $now = time();
+    $timeopen = $pledge->timeopen ?? 0;
+    $timeclosed = $pledge->timeclosed ?? 0;
+
+    // Comprobar si el pledge aún no está abierto
+    if ($timeopen > 0 && $now < $timeopen) {
+        echo $OUTPUT->header();
+        echo $OUTPUT->notification(get_string('pledgenotavailable', 'pledge', userdate($timeopen)), 'error');
+        echo $OUTPUT->footer();
+        exit;
+    }
+
+    // Comprobar si el pledge ya está cerrado
+    if ($timeclosed > 0 && $now > $timeclosed) {
+        echo $OUTPUT->header();
+        echo $OUTPUT->notification(get_string('pledgeclosed', 'pledge', userdate($timeclosed)), 'error');
+        echo $OUTPUT->footer();
+        exit;
+    }
+}
+
 // Procesar eliminación si se recibe el parámetro 'deleteid'
 $deleteid = optional_param('deleteid', 0, PARAM_INT);
 if ($deleteid && confirm_sesskey()) {

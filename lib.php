@@ -212,44 +212,55 @@ function pledge_delete_instance($id) {
     return $result;
 }
 
-/**
-* Marks a module as viewed.
-*
-* Should be called whenever a module is 'viewed' (it is up to the module how to
-* determine that). Has no effect if viewing is not set as a completion condition.
-*
-* Note that this function must be called before you print the page header because
-* it is possible that the navigation block may depend on it. If you call it after
-* printing the header, it shows a developer debug warning.
-*
-* @param stdClass|cm_info $cm Activity
-* @param int $userid User ID or 0 (default) for current user
-* @return void
-*/
-/* function set_module_unviewed($cm, $userid) {
-    global $PAGE, $DB;
-    $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-    $completion = new completion_info($course);
-    if ($PAGE->headerprinted) {
-        debugging('set_module_unviewed must be called before header is printed',
-            DEBUG_DEVELOPER);
+function pledge_cm_info_view(cm_info $cm) {
+    global $DB;
+    
+    try {
+        // Obtener la instancia del pledge
+        $pledge = $DB->get_record('pledge', array('id' => $cm->instance), '*');
+        
+        if (!$pledge) {
+            return;
+        }
+        
+        // Construir información de disponibilidad basada en timeopen y timeclosed
+        $now = time();
+        $availabilityinfo = '';
+        
+        if ($pledge->timeopen > 0 && $now < $pledge->timeopen) {
+            // El pledge aún no está disponible
+            $availabilityinfo = get_string('availablefrom', 'pledge') . ' ' . userdate($pledge->timeopen);
+            // Si también tiene fecha de cierre, mostrarla
+            if ($pledge->timeclosed > 0) {
+                $availabilityinfo .= ' ' . get_string('to', 'pledge') . ' ' . userdate($pledge->timeclosed);
+            }
+        } else if ($pledge->timeclosed > 0 && $now > $pledge->timeclosed) {
+            // El pledge ya está cerrado
+            $availabilityinfo = get_string('pledgeclosed', 'pledge', userdate($pledge->timeclosed));
+        } else {
+            // El pledge está actualmente abierto, mostrar cuándo abre/cierra
+            $parts = array();
+            
+            if ($pledge->timeopen > 0) {
+                $parts[] = get_string('openedon', 'pledge') . ' ' . userdate($pledge->timeopen);
+            }
+            
+            if ($pledge->timeclosed > 0) {
+                $parts[] = get_string('closeson', 'pledge') . ' ' . userdate($pledge->timeclosed);
+            }
+            
+            if (!empty($parts)) {
+                $availabilityinfo = implode(' - ', $parts);
+            }
+        }
+        
+        // Añadir la información de disponibilidad después del enlace
+        if (!empty($availabilityinfo)) {
+            $cm->set_after_link(html_writer::div($availabilityinfo, 'availabilityinfo text-muted small'));
+        }
+        
+    } catch (Exception $e) {
+        // Manejar errores silenciosamente para no romper la página del curso
+        debugging('Error in pledge_cm_info_view: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
- 
-    // Don't do anything if view condition is not turned on
-    if ($cm->completionview == COMPLETION_VIEW_NOT_REQUIRED || !$completion->is_enabled($cm)) {
-        return;
-    }
- 
-    // Get current completion state
-    $data = $completion->get_data($cm, false, $userid);
- 
-    // If we already viewed it, don't do anything
-    if ($data->viewed == COMPLETION_NOT_VIEWED) {
-        return;
-    }
- 
-    // OK, change state, save it, and update completion
-    $data->viewed = COMPLETION_NOT_VIEWED;
-    $completion->internal_set_data($cm, $data);
-    $completion->update_state($cm, COMPLETION_INCOMPLETE, $userid);
-} */
+}

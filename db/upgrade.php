@@ -54,5 +54,27 @@ function xmldb_pledge_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025051000, 'mod', 'pledge');
     }
 
+    if ($oldversion < 2025111201) {
+        // Define field timeopen to be added to pledge.
+        $table = new xmldb_table('pledge');
+        $field = new xmldb_field('timeopen', XMLDB_TYPE_INTEGER, '10', null, false, null, '0', 'linkedactivity');
+
+        // Conditionally launch add field timeopen.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field timeclosed to be added to pledge.
+        $field = new xmldb_field('timeclosed', XMLDB_TYPE_INTEGER, '10', null, false, null, '0', 'timeopen');
+
+        // Conditionally launch add field timeclosed.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Pledge savepoint reached.
+        upgrade_mod_savepoint(true, 2025111201, 'pledge');
+    }
+
     return true;
 }

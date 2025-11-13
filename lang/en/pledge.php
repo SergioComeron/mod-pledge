@@ -23,8 +23,15 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+$string['activity'] = 'Activity';
+$string['allow'] = 'Allow';
+$string['availability'] = 'Availability';
+$string['availablefrom'] = 'Available from';
+$string['closeson'] = 'Closes on';
+$string['datelimit'] = 'Datelimit';
 $string['modulename']          = 'Pledge';
 $string['modulenameplural']    = 'Pledges';
+$string['openedon'] = 'Opened on';
 $string['pluginname']          = 'Pledge';
 
 $string['pledgetitle']         = 'Pledge Title';
@@ -32,6 +39,7 @@ $string['pledgedescription']   = 'Pledge Description';
 $string['submitpledge']        = 'Submit Pledge';
 $string['editpledge']          = 'Edit Pledge';
 $string['deletepledge']        = 'Delete Pledge';
+$string['to'] = 'to';
 $string['viewpledges']         = 'View Pledges';
 $string['nopledges']           = 'No pledges have been submitted yet.';
 
@@ -65,3 +73,9 @@ $string['usernotfound'] = 'User not found';
 $string['errormodulonotquiz'] = 'Error: Module is not a quiz.';
 $string['sendjustificantes'] = 'Send supporting documents';
 $string['sendjustificantes_desc'] = 'Check this option to send supporting documents automatically.';
+$string['pledgenotavailable'] = 'This pledge will be available from {$a}';
+$string['pledgeclosed'] = 'This pledge was closed on {$a}';
+$string['pledgeopentoolate'] = 'The pledge opening date cannot be later than the linked activity opening date ({$a})';
+$string['pledgeclosetoolate'] = 'The pledge closing date cannot be later than the linked activity closing date ({$a})';
+$string['pledgeclosedbeforeopen'] = 'The pledge closing date must be after the opening date';
+$string['pledgeopenafteractivityclose'] = 'The pledge cannot open after the linked activity has closed';
