@@ -200,7 +200,7 @@ function pledge_delete_instance($id) {
     $result = true;
     
     // Eliminar todos los registros de aceptación de este pledge.
-    $DB->delete_records('pledge_acceptance', array('pledge' => $pledge->id));
+    $DB->delete_records('pledge_acceptance', array('pledgeid' => $pledge->id));
 
     // Borramos el registro principal del pledge.
     if (! $DB->delete_records('pledge', array('id' => $pledge->id))) {
