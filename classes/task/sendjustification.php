@@ -210,6 +210,10 @@ class sendjustification extends \core\task\adhoc_task {
             'email' => 'justificantes@udima.es',
             'firstname' => 'Justificantes',
             'lastname' => 'UDIMA',
+            'firstnamephonetic' => '',
+            'lastnamephonetic' => '',
+            'middlename' => '',
+            'alternatename' => '',
             'maildisplay' => true
         ];
         email_to_user(
@@ -235,37 +239,43 @@ class sendjustification extends \core\task\adhoc_task {
         return true;
     }
 
-    private static function obtener_numdocumento_ldap(string $uid) {
-        $host = "ldap://172.21.4.20:389";
-        $base_dn = "cn=users,dc=udima,dc=es";
-        $filtro = "(uid=$uid)";
-        $atributos = ["numdocumento"];
+    private static function obtener_numdocumento_ldap(string $username) {
+        global $CFG;
+        require_once($CFG->libdir . '/authlib.php');
 
-        $ldapconn = ldap_connect($host);
-        ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, 3);
+        // Reutilizamos la configuración del plugin auth_ldap (host, bind, versión, TLS, etc.)
+        // que apunta al AD corporativo. Así no hay credenciales hardcodeadas.
+        $authplugin = get_auth_plugin('ldap');
 
-        if (!$ldapconn) {
-            debugging("No se pudo conectar al servidor LDAP", DEBUG_DEVELOPER);
+        try {
+            $ldapconn = $authplugin->ldap_connect();
+        } catch (\Exception $e) {
+            debugging("No se pudo conectar/bind con el AD: " . $e->getMessage(), DEBUG_DEVELOPER);
             return null;
         }
 
-        // No se necesita autenticación, bind anónimo
-        if (!ldap_bind($ldapconn)) {
-            debugging("Fallo en el bind LDAP", DEBUG_DEVELOPER);
+        // Localiza el DN del usuario usando el user_attribute configurado en el plugin (uxxiuid).
+        $userdn = $authplugin->ldap_find_userdn($ldapconn, $username);
+        if (!$userdn) {
+            debugging("Usuario no encontrado en el AD: $username", DEBUG_DEVELOPER);
+            $authplugin->ldap_close();
             return null;
         }
 
-        $resultado = ldap_search($ldapconn, $base_dn, $filtro, $atributos);
+        // Atributo del AD que contiene el número de documento (DNI/NIE).
+        $atributo = 'uxxinumberdocument';
+        $resultado = ldap_read($ldapconn, $userdn, '(objectClass=*)', [$atributo]);
         if (!$resultado) {
-            debugging("Error en la búsqueda LDAP", DEBUG_DEVELOPER);
+            debugging("Error al leer el atributo $atributo en el AD para $username", DEBUG_DEVELOPER);
+            $authplugin->ldap_close();
             return null;
         }
 
         $entradas = ldap_get_entries($ldapconn, $resultado);
-        ldap_unbind($ldapconn);
+        $authplugin->ldap_close();
 
-        if ($entradas["count"] > 0 && isset($entradas[0]["numdocumento"][0])) {
-            return $entradas[0]["numdocumento"][0];
+        if (!empty($entradas[0][$atributo][0])) {
+            return $entradas[0][$atributo][0];
         }
 
         return null; // No encontrado
