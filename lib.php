@@ -25,17 +25,17 @@
  */
 
  /**
- * Returns the information on whether the module supports a feature
- *
- * See {@link plugin_supports()} for more info.
- *
- * @param string $feature FEATURE_xx constant for requested feature
- * @return mixed true if the feature is supported, null if unknown
- */
+  * Returns the information on whether the module supports a feature
+  *
+  * See {@link plugin_supports()} for more info.
+  *
+  * @param string $feature FEATURE_xx constant for requested feature
+  * @return mixed true if the feature is supported, null if unknown
+  */
 function pledge_supports($feature) {
     global $CFG;
     if ($CFG->branch >= 400) {
-        switch($feature) {
+        switch ($feature) {
             case FEATURE_COMPLETION_TRACKS_VIEWS:
                 return true;
             case FEATURE_MOD_INTRO:
@@ -50,7 +50,7 @@ function pledge_supports($feature) {
                 return null;
         }
     } else {
-        switch($feature) {
+        switch ($feature) {
             case FEATURE_COMPLETION_TRACKS_VIEWS:
                 return true;
             case FEATURE_MOD_INTRO:
@@ -79,25 +79,25 @@ function pledge_supports($feature) {
  */
 function pledge_add_instance($data, $mform) {
     global $DB;
-    
-    // Si se ha seleccionado una actividad vinculada y no es "none" (valor 0)
+
+    // Si se ha seleccionado una actividad vinculada y no es "none" (valor 0).
     if (!empty($data->linkedactivity) && $data->linkedactivity != 0) {
-        // Recuperar el course module de la actividad vinculada (asumiendo que es un cuestionario)
-        $cm = $DB->get_record('course_modules', array('id' => $data->linkedactivity), '*', MUST_EXIST);
-        // Conocer el tipo de módulo (debe ser 'quiz')
-        $moduleinfo = $DB->get_record('modules', array('id' => $cm->module), 'name', MUST_EXIST);
+        // Recuperar el course module de la actividad vinculada (asumiendo que es un cuestionario).
+        $cm = $DB->get_record('course_modules', ['id' => $data->linkedactivity], '*', MUST_EXIST);
+        // Conocer el tipo de módulo (debe ser 'quiz').
+        $moduleinfo = $DB->get_record('modules', ['id' => $cm->module], 'name', MUST_EXIST);
         if ($moduleinfo->name === 'quiz') {
-            // Recuperamos el nombre del cuestionario desde la tabla 'quiz'
-            $quiz = $DB->get_record('quiz', array('id' => $cm->instance), 'name', MUST_EXIST);
-            // Concatenar el nombre del pledge con el nombre del cuestionario
+            // Recuperamos el nombre del cuestionario desde la tabla 'quiz'.
+            $quiz = $DB->get_record('quiz', ['id' => $cm->instance], 'name', MUST_EXIST);
+            // Concatenar el nombre del pledge con el nombre del cuestionario.
             $data->name = $data->name . ' (' . $quiz->name . ')';
         }
     }
-    
+
     // Asignar los tiempos de creación y modificación.
     $data->timecreated = time();
     $data->timemodified = time();
-    
+
     // Guardamos el registro del pledge con el nombre modificado.
     $data->id = $DB->insert_record('pledge', $data);
     return $data->id;
@@ -114,9 +114,9 @@ function pledge_add_instance($data, $mform) {
  * @param mod_pledge_mod_form $mform The form instance itself (if needed)
  * @return boolean Success/Fail
  */
-function pledge_update_instance($pledge,  $mform = null) {
+function pledge_update_instance($pledge, $mform = null) {
     global $CFG, $DB;
-    require_once($CFG->dirroot.'/mod/pledge/locallib.php');
+    require_once($CFG->dirroot . '/mod/pledge/locallib.php');
 
     $pledge->timemodified = time();
     $pledge->id = $pledge->instance;
@@ -145,11 +145,11 @@ function pledge_refresh_events($courseid = 0, $instance = null, $cm = null) {
 
     if (isset($instance)) {
         if (!is_object($instance)) {
-            $instance = $DB->get_record('pledge', array('id' => $instance), '*', MUST_EXIST);
+            $instance = $DB->get_record('pledge', ['id' => $instance], '*', MUST_EXIST);
         }
         if (isset($cm)) {
             if (!is_object($cm)) {
-                $cm = (object)array('id' => $cm);
+                $cm = (object)['id' => $cm];
             }
         } else {
             $cm = get_coursemodule_from_instance('pledge', $instance->id);
@@ -162,7 +162,7 @@ function pledge_refresh_events($courseid = 0, $instance = null, $cm = null) {
         if (!is_numeric($courseid)) {
             return false;
         }
-        if (!$pledges = $DB->get_records('pledge', array('course' => $courseid))) {
+        if (!$pledges = $DB->get_records('pledge', ['course' => $courseid])) {
             return true;
         }
     } else {
@@ -190,20 +190,20 @@ function pledge_refresh_events($courseid = 0, $instance = null, $cm = null) {
 function pledge_delete_instance($id) {
     global $CFG, $DB;
 
-    if (! $pledge = $DB->get_record('pledge', array('id' => $id))) {
+    if (! $pledge = $DB->get_record('pledge', ['id' => $id])) {
         return false;
     }
-    // Obtenemos el course module
+    // Obtenemos el course module.
     $cm = get_coursemodule_from_instance('pledge', $pledge->id, $pledge->course, false, MUST_EXIST);
 
     $context = context_course::instance($pledge->course);
     $result = true;
-    
+
     // Eliminar todos los registros de aceptación de este pledge.
-    $DB->delete_records('pledge_acceptance', array('pledgeid' => $pledge->id));
+    $DB->delete_records('pledge_acceptance', ['pledgeid' => $pledge->id]);
 
     // Borramos el registro principal del pledge.
-    if (! $DB->delete_records('pledge', array('id' => $pledge->id))) {
+    if (! $DB->delete_records('pledge', ['id' => $pledge->id])) {
         $result = false;
     }
     // En caso de que tengas procesos adicionales para borrar datos relacionados (por ejemplo, eventos),
@@ -212,55 +212,59 @@ function pledge_delete_instance($id) {
     return $result;
 }
 
+/**
+ * Adds availability information after the activity link on the course page.
+ *
+ * @param cm_info $cm The course module information object.
+ */
 function pledge_cm_info_view(cm_info $cm) {
     global $DB;
-    
+
     try {
-        // Obtener la instancia del pledge
-        $pledge = $DB->get_record('pledge', array('id' => $cm->instance), '*');
-        
+        // Obtener la instancia del pledge.
+        $pledge = $DB->get_record('pledge', ['id' => $cm->instance], '*');
+
         if (!$pledge) {
             return;
         }
-        
-        // Construir información de disponibilidad basada en timeopen y timeclosed
+
+        // Construir información de disponibilidad basada en timeopen y timeclosed.
         $now = time();
         $availabilityinfo = '';
-        
+
         if ($pledge->timeopen > 0 && $now < $pledge->timeopen) {
-            // El pledge aún no está disponible
+            // El pledge aún no está disponible.
             $availabilityinfo = get_string('availablefrom', 'pledge') . ' ' . userdate($pledge->timeopen);
-            // Si también tiene fecha de cierre, mostrarla
+            // Si también tiene fecha de cierre, mostrarla.
             if ($pledge->timeclosed > 0) {
                 $availabilityinfo .= ' ' . get_string('to', 'pledge') . ' ' . userdate($pledge->timeclosed);
             }
         } else if ($pledge->timeclosed > 0 && $now > $pledge->timeclosed) {
-            // El pledge ya está cerrado
+            // El pledge ya está cerrado.
             $availabilityinfo = get_string('pledgeclosed', 'pledge', userdate($pledge->timeclosed));
         } else {
-            // El pledge está actualmente abierto, mostrar cuándo abre/cierra
-            $parts = array();
-            
+            // El pledge está actualmente abierto, mostrar cuándo abre/cierra.
+            $parts = [];
+
             if ($pledge->timeopen > 0) {
                 $parts[] = get_string('openedon', 'pledge') . ' ' . userdate($pledge->timeopen);
             }
-            
+
             if ($pledge->timeclosed > 0) {
                 $parts[] = get_string('closeson', 'pledge') . ' ' . userdate($pledge->timeclosed);
             }
-            
+
             if (!empty($parts)) {
                 $availabilityinfo = implode(' - ', $parts);
             }
         }
-        
-        // Añadir la información de disponibilidad después del enlace
+
+        // Añadir la información de disponibilidad después del enlace.
         if (!empty($availabilityinfo)) {
             $cm->set_after_link(html_writer::div($availabilityinfo, 'availabilityinfo text-muted small'));
         }
-        
     } catch (Exception $e) {
-        // Manejar errores silenciosamente para no romper la página del curso
+        // Manejar errores silenciosamente para no romper la página del curso.
         debugging('Error in pledge_cm_info_view: ' . $e->getMessage(), DEBUG_DEVELOPER);
     }
 }

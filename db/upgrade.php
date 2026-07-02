@@ -38,18 +38,18 @@ function xmldb_pledge_upgrade($oldversion) {
     if ($oldversion < 2025051000) {
         // Obtén el manager de la base de datos.
         $dbman = $DB->get_manager();
-        
+
         // Define la tabla a actualizar.
         $table = new xmldb_table('pledge_acceptance');
-        
+
         // Define el nuevo campo "justificante".
         $field = new xmldb_field('justificante', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'timeaccepted');
-        
+
         // Si el campo aún no existe, se añade.
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
-        
+
         // Marca el savepoint para esta versión.
         upgrade_plugin_savepoint(true, 2025051000, 'mod', 'pledge');
     }

@@ -22,9 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-defined('MOODLE_INTERNAL') || die;
-
 /**
  * Define the complete pledge structure for backup, with file and id annotations
  *
@@ -34,7 +31,6 @@ defined('MOODLE_INTERNAL') || die;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_pledge_activity_structure_step extends backup_activity_structure_step {
-
     /**
      * Defines the backup structure of the module
      *
@@ -45,25 +41,25 @@ class backup_pledge_activity_structure_step extends backup_activity_structure_st
         $userinfo = $this->get_setting_value('userinfo');
 
         // Define the main element 'pledge' with fields from the pledge table.
-        $pledge = new backup_nested_element('pledge', array('id'), array(
-            'course', 'name', 'intro', 'introformat', 'linkedactivity', 'timecreated'
-        ));
+        $pledge = new backup_nested_element('pledge', ['id'], [
+            'course', 'name', 'intro', 'introformat', 'linkedactivity', 'timecreated',
+        ]);
 
         // Define child element for acceptances.
         $acceptances = new backup_nested_element('acceptances');
-        $acceptance = new backup_nested_element('acceptance', array('id'), array(
-            'pledgeid', 'userid', 'timeaccepted', 'justificante'
-        ));
+        $acceptance = new backup_nested_element('acceptance', ['id'], [
+            'pledgeid', 'userid', 'timeaccepted', 'justificante',
+        ]);
 
         // Build the tree structure.
         $pledge->add_child($acceptances);
         $acceptances->add_child($acceptance);
 
         // Define sources.
-        $pledge->set_source_table('pledge', array('id' => backup::VAR_ACTIVITYID));
+        $pledge->set_source_table('pledge', ['id' => backup::VAR_ACTIVITYID]);
 
         if ($userinfo) {
-            $acceptance->set_source_table('pledge_acceptance', array('pledgeid' => '../../id'));
+            $acceptance->set_source_table('pledge_acceptance', ['pledgeid' => '../../id']);
         }
 
         $acceptance->annotate_ids('user', 'userid');

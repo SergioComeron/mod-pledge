@@ -24,16 +24,27 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/course/moodleform_mod.php');
+require_once($CFG->dirroot . '/course/moodleform_mod.php');
 
+/**
+ * Module settings form for the pledge activity.
+ *
+ * @package   mod_pledge
+ * @copyright 2025 Sergio Comerón <info@sergiocomeron.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class mod_pledge_mod_form extends moodleform_mod {
-
+    /**
+     * Defines the elements of the pledge module settings form.
+     *
+     * @return void
+     */
     public function definition() {
         global $CFG, $DB, $COURSE;
 
         $mform = $this->_form;
 
-        $mform->addElement('text', 'name', get_string('name'), array('size' => '64'));
+        $mform->addElement('text', 'name', get_string('name'), ['size' => '64']);
         $mform->setType('name', PARAM_TEXT);
         $mform->addRule('name', null, 'required', null, 'client');
 
@@ -44,11 +55,11 @@ class mod_pledge_mod_form extends moodleform_mod {
 
         // Agregar selector para vincular una actividad del curso.
         $modinfo = get_fast_modinfo($COURSE);
-        $activities = array(0 => get_string('none', 'pledge'));  // opción "ninguna"
+        $activities = [0 => get_string('none', 'pledge')];  // Opción "ninguna".
         if (!empty($modinfo->cms)) {
             foreach ($modinfo->cms as $cm) {
-                // Mostrar solo actividades tipo 'quiz'
-                if ($cm->uservisible && $cm->modname === 'quiz') {  
+                // Mostrar solo actividades tipo 'quiz'.
+                if ($cm->uservisible && $cm->modname === 'quiz') {
                     $activities[$cm->id] = format_string($cm->name);
                 }
             }
@@ -58,79 +69,84 @@ class mod_pledge_mod_form extends moodleform_mod {
         $mform->addHelpButton('linkedactivity', 'linkedactivity', 'pledge');
         $mform->setDefault('linkedactivity', 0);
 
-
         $mform->addElement('header', 'availability', get_string('availability', 'pledge'));
         $mform->setExpanded('availability', true);
 
         $name = get_string('allow', 'pledge');
-        $options = array('optional' => true);
+        $options = ['optional' => true];
         $mform->addElement('date_time_selector', 'timeopen', $name, $options);
         $namec = get_string('datelimit', 'pledge');
-        $optionsc = array('optional' => true);
+        $optionsc = ['optional' => true];
         $mform->addElement('date_time_selector', 'timeclosed', $namec, $optionsc);
 
-        
         // Se elimina la regla 'required' estándar para aplicar validación personalizada.
-        // $mform->addRule('linkedactivity', null, 'required', null, 'client');
+        // $mform->addRule('linkedactivity', null, 'required', null, 'client');.
 
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
     }
 
+    /**
+     * Validates the submitted pledge form data.
+     *
+     * @param array $data  The submitted form data.
+     * @param array $files The submitted files.
+     * @return array Array of validation errors keyed by form element name.
+     */
     public function validation($data, $files) {
         global $DB;
         $errors = parent::validation($data, $files);
-        
-        // Validamos que se haya seleccionado una actividad (distinta de la opción "none" que es 0)
+
+        // Validamos que se haya seleccionado una actividad (distinta de la opción "none" que es 0).
         if (empty($data['linkedactivity']) || $data['linkedactivity'] == 0) {
             $errors['linkedactivity'] = get_string('selectlinkedactivityrequired', 'pledge');
         } else {
-            // Obtener información de la actividad enlazada
+            // Obtener información de la actividad enlazada.
             $cm = get_coursemodule_from_id('', $data['linkedactivity'], 0, false, MUST_EXIST);
-            $moduleinfo = $DB->get_record('modules', array('id' => $cm->module), 'name', MUST_EXIST);
-            
-            // Obtener las fechas de la actividad enlazada según su tipo
+            $moduleinfo = $DB->get_record('modules', ['id' => $cm->module], 'name', MUST_EXIST);
+
+            // Obtener las fechas de la actividad enlazada según su tipo.
             $activitydates = null;
             if ($moduleinfo->name === 'quiz') {
-                $activity = $DB->get_record('quiz', array('id' => $cm->instance), 'timeopen, timeclose');
+                $activity = $DB->get_record('quiz', ['id' => $cm->instance], 'timeopen, timeclose');
                 if ($activity) {
-                    $activitydates = array(
+                    $activitydates = [
                         'timeopen' => $activity->timeopen,
-                        'timeclose' => $activity->timeclose
-                    );
+                        'timeclose' => $activity->timeclose,
+                    ];
                 }
             }
-            // Aquí podrías añadir más tipos de actividades si es necesario
-            
-            // Validar concordancia de fechas
+            // Aquí podrías añadir más tipos de actividades si es necesario.
+
+            // Validar concordancia de fechas.
             if ($activitydates) {
                 $pledgetimeopen = isset($data['timeopen']) ? $data['timeopen'] : 0;
                 $pledgetimeclosed = isset($data['timeclosed']) ? $data['timeclosed'] : 0;
-                
-                // Si la actividad tiene fecha de inicio y el pledge también
+
+                // Si la actividad tiene fecha de inicio y el pledge también.
                 if ($activitydates['timeopen'] > 0 && $pledgetimeopen > 0) {
-                    // El pledge no puede abrirse después del inicio de la actividad
+                    // El pledge no puede abrirse después del inicio de la actividad.
                     if ($pledgetimeopen > $activitydates['timeopen']) {
                         $errors['timeopen'] = get_string('pledgeopentoolate', 'pledge', userdate($activitydates['timeopen']));
                     }
                 }
-                
-                // Si la actividad tiene fecha de cierre y el pledge también
+
+                // Si la actividad tiene fecha de cierre y el pledge también.
                 if ($activitydates['timeclose'] > 0 && $pledgetimeclosed > 0) {
-                    // El pledge no puede cerrarse después del cierre de la actividad
+                    // El pledge no puede cerrarse después del cierre de la actividad.
                     if ($pledgetimeclosed > $activitydates['timeclose']) {
                         $errors['timeclosed'] = get_string('pledgeclosetoolate', 'pledge', userdate($activitydates['timeclose']));
                     }
                 }
-                
-                // Si ambas fechas del pledge están definidas, validar que timeopen < timeclosed
+
+                // Si ambas fechas del pledge están definidas, validar que timeopen < timeclosed.
                 if ($pledgetimeopen > 0 && $pledgetimeclosed > 0) {
                     if ($pledgetimeopen >= $pledgetimeclosed) {
                         $errors['timeclosed'] = get_string('pledgeclosedbeforeopen', 'pledge');
                     }
                 }
-                
-                // Validar que el pledge esté abierto antes de que cierre la actividad
+
+                // Validar que el pledge esté abierto antes de que cierre la actividad.
                 if ($activitydates['timeclose'] > 0 && $pledgetimeopen > 0) {
                     if ($pledgetimeopen >= $activitydates['timeclose']) {
                         $errors['timeopen'] = get_string('pledgeopenafteractivityclose', 'pledge');
@@ -138,8 +154,7 @@ class mod_pledge_mod_form extends moodleform_mod {
                 }
             }
         }
-        
+
         return $errors;
     }
 }
-

@@ -27,7 +27,6 @@ require_once($CFG->libdir . '/pdflib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class sendjustification extends \core\task\adhoc_task {
-
     /**
      * Execute the task.
      *
@@ -68,7 +67,7 @@ class sendjustification extends \core\task\adhoc_task {
     private static function send_pdf_to_user($userid, $pledgeid) {
         global $DB, $CFG;
 
-        $user = $DB->get_record('user', array('id' => $userid));
+        $user = $DB->get_record('user', ['id' => $userid]);
         if (!$user) {
             throw new \moodle_exception('usernotfound', 'pledge');
         }
@@ -77,24 +76,23 @@ class sendjustification extends \core\task\adhoc_task {
         if (!$dniprs) {
             throw new \moodle_exception('errornodocument', 'pledge', '', $user->username);
         }
-        // $dniprs = '12345678A'; // Simulación de número de documento para pruebas.
 
         // Primero, obtener el registro de pledge_acceptance.
-        $pledgeacceptance = $DB->get_record('pledge_acceptance', array('pledgeid' => $pledgeid, 'userid' => $userid), '*', MUST_EXIST);
+        $pledgeacceptance = $DB->get_record('pledge_acceptance', ['pledgeid' => $pledgeid, 'userid' => $userid], '*', MUST_EXIST);
 
         // Obtener la actividad vinculada al pledge usando el campo pledgeid del registro.
-        $pledge = $DB->get_record('pledge', array('id' => $pledgeacceptance->pledgeid), '*', MUST_EXIST);
-        
+        $pledge = $DB->get_record('pledge', ['id' => $pledgeacceptance->pledgeid], '*', MUST_EXIST);
+
         // Obtener el nombre de la asignatura vinculada al pledge.
-        $course = $DB->get_record('course', array('id' => $pledge->course), '*', MUST_EXIST);
+        $course = $DB->get_record('course', ['id' => $pledge->course], '*', MUST_EXIST);
         $assnomid1 = $course->fullname;
 
         // Verificar y obtener las fechas de inicio y fin configuradas en la actividad vinculada al pledge.
-        $cm = $DB->get_record('course_modules', array('id' => $pledge->linkedactivity), '*', MUST_EXIST);
-        // Conocer el tipo de módulo (debe ser 'quiz')
-        $moduleinfo = $DB->get_record('modules', array('id' => $cm->module), 'name', MUST_EXIST);
+        $cm = $DB->get_record('course_modules', ['id' => $pledge->linkedactivity], '*', MUST_EXIST);
+        // Conocer el tipo de módulo (debe ser 'quiz').
+        $moduleinfo = $DB->get_record('modules', ['id' => $cm->module], 'name', MUST_EXIST);
         if ($moduleinfo->name === 'quiz') {
-            $quiz = $DB->get_record('quiz', array('id' => $cm->instance), '*', MUST_EXIST);
+            $quiz = $DB->get_record('quiz', ['id' => $cm->instance], '*', MUST_EXIST);
             $fechainicio = $quiz->timeopen;
             $fechafin   = $quiz->timeclose;
         } else {
@@ -115,23 +113,23 @@ class sendjustification extends \core\task\adhoc_task {
             throw new \moodle_exception('errornocodigoexamen', 'pledge');
         }
 
-        // Crear el PDF
+        // Crear el PDF.
         $fs = get_file_storage();
         $pdf = new \pdf();
         $pdf->SetCreator(PDF_CREATOR);
         $pdf->SetAuthor('UDIMA');
         $pdf->SetTitle('Justificante de asistencia');
         $pdf->SetSubject('Justificante');
-        $pdf->SetMargins(20, 30, 20); // Margen superior más amplio para el logo
+        $pdf->SetMargins(20, 30, 20); // Margen superior más amplio para el logo.
         $pdf->AddPage();
 
-        // Insertar logotipo (ajusta tamaño y posición si quieres)
+        // Insertar logotipo (ajusta tamaño y posición si quieres).
         $logopath = $CFG->dirroot . '/local/recibeexamen/pix/udima_logo.png';
         if (file_exists($logopath)) {
             $pdf->Image($logopath, 15, 10, 30);
         }
 
-        // Contenido HTML del justificante
+        // Contenido HTML del justificante.
         $fecha = userdate(time(), '%d de %B de %Y');
         $html = '
         <style>
@@ -146,7 +144,8 @@ class sendjustification extends \core\task\adhoc_task {
         <div class="text">
             Collado Villalba, a ' . $fecha . '<br><br>
 
-            D/Dª <strong>' . fullname($user) . '</strong> con Número de Documento de Identificación: <strong>' . $dniprs  . '</strong>,
+            D/Dª <strong>' . fullname($user) . '</strong> con Número de Documento de Identificación: <strong>'
+            . $dniprs  . '</strong>,
             matriculado/a en esta Universidad en estudios universitarios conducentes a una titulación oficial, ha asistido a
             la realización del examen convocado por la Universidad a Distancia de Madrid, en la fecha, hora y sede que figura
             a continuación, expidiéndose a petición del interesado el presente certificado a los efectos oportunos.
@@ -164,47 +163,49 @@ class sendjustification extends \core\task\adhoc_task {
         <div class="text">Firma y sello</div><br><br>
         ';
 
-        // Escribir el HTML
+        // Escribir el HTML.
         $pdf->SetFont('helvetica', '', 12);
         $pdf->writeHTML($html, true, false, true, false, '');
 
-        // Añadir firma (opcional)
+        // Añadir firma (opcional).
         $firmapath = $CFG->dirroot . '/local/recibeexamen/pix/firma.png';
         if (file_exists($firmapath)) {
             $pdf->Image($firmapath, 20, $pdf->GetY(), 50);
         }
 
-        // Pie de página
+        // Pie de página.
         $pdf->Ln(40);
         $pdf->SetFont('helvetica', '', 9);
-        $pdf->MultiCell(0, 10, "Carretera de La Coruña, km 38,500 (vía de servicio, n.º 15) • 28400 Collado Villalba (Madrid) • 902 02 00 03\nwww.udima.es • informa@udima.es", 0, 'C');
+        $pdf->MultiCell(0, 10, "Carretera de La Coruña, km 38,500 (vía de servicio, n.º 15) • 28400 Collado Villalba (Madrid) • "
+            . "902 02 00 03\nwww.udima.es • informa@udima.es", 0, 'C');
 
-        // Guardar PDF en temporal
+        // Guardar PDF en temporal.
         $filename = "justificante_{$user->username}.pdf";
         $tempdir = make_temp_directory('local_recibeexamen');
         $pdfpath = $tempdir . '/' . $filename;
         $pdf->Output($pdfpath, 'F');
 
-        // Enviar correo
+        // Enviar correo.
         $subject = "Justificante - {$user->username}";
-        $sede = "Online"; // Definir la sede
+        $sede = "Online"; // Definir la sede.
 
         // Preparar mensajes para texto plano y HTML.
-        $message_plain = "Estimado/a {$user->firstname},\n\nAdjunto le remitimos el justificante de asistencia al examen que se realizó en la fecha: " . $fechainicio . " en la sede: " . $sede . ".\n\nSaludos cordiales.";
-        $message_html = nl2br($message_plain);
+        $messageplain = "Estimado/a {$user->firstname},\n\nAdjunto le remitimos el justificante de asistencia al examen "
+            . "que se realizó en la fecha: " . $fechainicio . " en la sede: " . $sede . ".\n\nSaludos cordiales.";
+        $messagehtml = nl2br($messageplain);
 
-        // Enviar correo con adjunto
+        // Enviar correo con adjunto.
         $emailresult = email_to_user(
             $user,
             \core_user::get_support_user(),
             $subject,
-            $message_plain,
-            $message_html,
+            $messageplain,
+            $messagehtml,
             $pdfpath,
             $filename
         );
 
-        // Enviar copia a justificantes@udima.es
+        // Enviar copia a justificantes@udima.es.
         $copyuser = (object)[
             'id' => -1,
             'email' => 'justificantes@udima.es',
@@ -214,14 +215,14 @@ class sendjustification extends \core\task\adhoc_task {
             'lastnamephonetic' => '',
             'middlename' => '',
             'alternatename' => '',
-            'maildisplay' => true
+            'maildisplay' => true,
         ];
         email_to_user(
             $copyuser,
             \core_user::get_support_user(),
             $subject,
-            $message_plain,
-            $message_html,
+            $messageplain,
+            $messagehtml,
             $pdfpath,
             $filename
         );
@@ -230,15 +231,18 @@ class sendjustification extends \core\task\adhoc_task {
             throw new \moodle_exception('errorcannotemail', 'local_recibeexamen');
         }
 
-        // Eliminar archivo temporal
+        // Eliminar archivo temporal.
         @unlink($pdfpath);
 
-        // Marcar como procesado
-        // $pledgeacceptance->justificante = time();
-        // $DB->update_record('pledge_acceptance', $pledgeacceptance);
         return true;
     }
 
+    /**
+     * Obtiene el número de documento (DNI/NIE) del usuario desde el AD corporativo vía LDAP.
+     *
+     * @param string $username Nombre de usuario en Moodle con el que localizar la entrada en el AD.
+     * @return string|null El número de documento si se encuentra, o null en caso contrario.
+     */
     private static function obtener_numdocumento_ldap(string $username) {
         global $CFG;
         require_once($CFG->libdir . '/authlib.php');
@@ -278,6 +282,6 @@ class sendjustification extends \core\task\adhoc_task {
             return $entradas[0][$atributo][0];
         }
 
-        return null; // No encontrado
+        return null; // No encontrado.
     }
 }

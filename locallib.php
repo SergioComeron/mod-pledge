@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
- defined('MOODLE_INTERNAL') || die();
-
 /**
  * Update the calendar entries for this pledge instance.
  *
@@ -33,15 +31,20 @@
 function pledge_update_calendar(stdClass $pledge, $cmid) {
     global $DB, $CFG;
 
-    require_once($CFG->dirroot.'/calendar/lib.php');
+    require_once($CFG->dirroot . '/calendar/lib.php');
 
     $event = new stdClass();
     $event->eventtype = 'open';
     $event->type = CALENDAR_EVENT_TYPE_STANDARD;
 
-    if ($event->id = $DB->get_field('event', 'id',
-            array('modulename' => 'pledge', 'instance' => $pledge->id,
-            'eventtype' => $event->eventtype))) {
+    if (
+        $event->id = $DB->get_field(
+            'event',
+            'id',
+            ['modulename' => 'pledge', 'instance' => $pledge->id,
+            'eventtype' => $event->eventtype]
+        )
+    ) {
         if ((!empty($pledge->timeopen)) && ($pledge->timeopen > 0)) {
             $event->name = get_string('calendarstart', 'pledge', $pledge->name);
             $event->timestart = $pledge->timeopen;
@@ -55,7 +58,6 @@ function pledge_update_calendar(stdClass $pledge, $cmid) {
             $calendarevent = calendar_event::load($event->id);
             $calendarevent->delete();
         }
-
     } else {
         if ((!empty($pledge->timeopen)) && ($pledge->timeopen > 0)) {
             $event->name = get_string('calendarstart', 'pledge', $pledge->name);

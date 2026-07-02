@@ -22,15 +22,17 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Structure step to restore one pledge activity
  */
 class restore_pledge_activity_structure_step extends restore_activity_structure_step {
-
+    /**
+     * Define the structure of the pledge activity to be restored.
+     *
+     * @return mixed The prepared activity structure.
+     */
     protected function define_structure() {
-        $paths = array();
+        $paths = [];
         $userinfo = $this->get_setting_value('userinfo');
 
         $paths[] = new restore_path_element('pledge', '/activity/pledge');
@@ -41,6 +43,12 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
         return $this->prepare_activity_structure($paths);
     }
 
+    /**
+     * Process the restore of a pledge record.
+     *
+     * @param array $data The pledge data to restore.
+     * @return void
+     */
     protected function process_pledge($data) {
         global $DB;
 
@@ -56,6 +64,12 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
         $this->apply_activity_instance($newitemid);
     }
 
+    /**
+     * Process the restore of a pledge acceptance record.
+     *
+     * @param array $data The pledge acceptance data to restore.
+     * @return void
+     */
     protected function process_pledge_acceptance($data) {
         global $DB;
 
@@ -67,7 +81,7 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
 
         $exists = $DB->record_exists('pledge_acceptance', [
             'pledgeid' => $data->pledgeid,
-            'userid' => $data->userid
+            'userid' => $data->userid,
         ]);
 
         if (!$exists) {
@@ -76,7 +90,7 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
         } else {
             $existing = $DB->get_record('pledge_acceptance', [
                 'pledgeid' => $data->pledgeid,
-                'userid' => $data->userid
+                'userid' => $data->userid,
             ], 'id');
             if ($existing) {
                 $this->set_mapping('pledge_acceptance', $oldid, $existing->id);
@@ -84,8 +98,13 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
         }
     }
 
+    /**
+     * Actions to be executed after the restore is complete.
+     *
+     * @return void
+     */
     protected function after_execute() {
-        // Add pledge related files
+        // Add pledge related files.
         $this->add_related_files('mod_pledge', 'intro', null);
     }
 }

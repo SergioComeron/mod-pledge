@@ -21,6 +21,9 @@
  * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib.php');
 
 /**
@@ -34,7 +37,6 @@ require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class restore_pledge_activity_task extends restore_activity_task {
-
     /**
      * Define (add) particular settings this activity can have
      */
@@ -54,10 +56,8 @@ class restore_pledge_activity_task extends restore_activity_task {
      * Define the contents in the activity that must be
      * processed by the link decoder
      */
-    static public function define_decode_contents() {
-        $contents = array();
-
-        // $contents[] = new restore_decode_content('pledge', array('intro'), 'pledge');
+    public static function define_decode_contents() {
+        $contents = [];
 
         return $contents;
     }
@@ -66,14 +66,13 @@ class restore_pledge_activity_task extends restore_activity_task {
      * Define the decoding rules for links belonging
      * to the activity to be executed by the link decoder
      */
-    static public function define_decode_rules() {
-        $rules = array();
+    public static function define_decode_rules() {
+        $rules = [];
 
         $rules[] = new restore_decode_rule('PLEDGEVIEWBYID', '/mod/pledge/view.php?id=$1', 'course_module');
         $rules[] = new restore_decode_rule('PLEDGEINDEX', '/mod/pledge/index.php?id=$1', 'course');
 
         return $rules;
-
     }
 
     /**
@@ -82,8 +81,8 @@ class restore_pledge_activity_task extends restore_activity_task {
      * pledge logs. It must return one array
      * of {@link restore_log_rule} objects
      */
-    static public function define_restore_log_rules() {
-        $rules = array();
+    public static function define_restore_log_rules() {
+        $rules = [];
 
         $rules[] = new restore_log_rule('pledge', 'add', 'view.php?id={course_module}', '{pledge}');
         $rules[] = new restore_log_rule('pledge', 'update', 'view.php?id={course_module}', '{pledge}');
@@ -102,8 +101,8 @@ class restore_pledge_activity_task extends restore_activity_task {
      * by the restore final task, but are defined here at
      * activity level. All them are rules not linked to any module instance (cmid = 0)
      */
-    static public function define_restore_log_rules_for_course() {
-        $rules = array();
+    public static function define_restore_log_rules_for_course() {
+        $rules = [];
 
         $rules[] = new restore_log_rule('identifier', 'view all', 'index.php?id={course}', null);
 
