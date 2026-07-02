@@ -22,7 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require(__DIR__ . '/../../config.php');
+require(dirname($_SERVER['SCRIPT_FILENAME'], 3) . '/config.php');
 
 $id = required_param('id', PARAM_INT);
 
