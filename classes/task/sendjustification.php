@@ -23,7 +23,7 @@ require_once($CFG->libdir . '/pdflib.php');
  * Class sendjustification
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class sendjustification extends \core\task\adhoc_task {

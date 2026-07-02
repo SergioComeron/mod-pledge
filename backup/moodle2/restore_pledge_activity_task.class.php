@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * TODO describe file restore_pledge_activity_task.class
+ * Restore activity task definition for the pledge module.
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 require_once($CFG->dirroot . '/mod/pledge/backup/moodle2/restore_pledge_stepslib.php');

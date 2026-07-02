@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version metadata for the repository_pluginname plugin.
+ * Displays a pledge instance and records its acceptance.
  *
  * @package   mod_pledge
- * @copyright 2025, author_fullname <author_link>
+ * @copyright 2025 Sergio Comerón <info@sergiocomeron.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

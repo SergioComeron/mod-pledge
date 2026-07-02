@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * TODO describe file backup_pledge_stepslib
+ * Backup steps definition for the pledge module.
  *
  * @package    mod_pledge
  * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
@@ -30,7 +30,7 @@ defined('MOODLE_INTERNAL') || die;
  *
  * @package   mod_pledge
  * @category  backup
- * @copyright 2016 Your Name <your@email.address>
+ * @copyright 2025 Sergio Comerón <info@sergiocomeron.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_pledge_activity_structure_step extends backup_activity_structure_step {

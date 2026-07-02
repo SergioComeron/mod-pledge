@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * TODO describe file locallib
+ * Internal library of functions for the pledge module.
  *
  * @package    mod_pledge
- * @copyright  2025 YOUR NAME <your@email.com>
+ * @copyright  2025 Sergio Comerón <info@sergiocomeron.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
