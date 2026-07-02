@@ -34,6 +34,7 @@
                 <!-- Prueba del consentimiento del tratamiento de datos (RGPD). -->
                 <FIELD NAME="consenttime" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Timestamp en el que el usuario otorgó el consentimiento del tratamiento de datos"/>
                 <FIELD NAME="consentversion" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="Hash SHA-1 del texto de consentimiento aceptado, para saber qué versión otorgó"/>
+                <FIELD NAME="honorversion" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="Hash SHA-1 del texto del código de honor aceptado, para saber qué versión aceptó"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -42,6 +43,22 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="pledge_user_idx" UNIQUE="true" FIELDS="pledgeid, userid"/>
+            </INDEXES>
+        </TABLE>
+
+        <!-- Versiones de los textos aceptados (consentimiento y código de honor), indexadas por hash -->
+        <TABLE NAME="pledge_textversion" COMMENT="Contenido de cada versión de texto aceptada, para poder recuperar el texto exacto">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="contenthash" TYPE="char" LENGTH="40" NOTNULL="true" COMMENT="Hash SHA-1 del contenido; enlaza con consentversion/honorversion de pledge_acceptance"/>
+                <FIELD NAME="content" TYPE="text" NOTNULL="true" COMMENT="Contenido HTML del texto tal y como se mostró al usuario"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="contenthash_idx" UNIQUE="true" FIELDS="contenthash"/>
             </INDEXES>
         </TABLE>
 

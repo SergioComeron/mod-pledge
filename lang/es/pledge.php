@@ -24,6 +24,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['accept']              = 'Acepto el compromiso';
+$string['acceptedconsenttext'] = 'Consentimiento del tratamiento de datos aceptado';
+$string['acceptedhonortext']   = 'Código de honor aceptado';
+$string['acceptedtexts']       = 'Textos aceptados';
+$string['acceptedtextsfor']    = 'Textos aceptados por {$a}';
 $string['acceptpledge']        = 'Aceptar compromiso';
 $string['alreadyaccepted']     = 'Ya ha aceptado este compromiso.';
 $string['calendarstart']       = 'Inicio del compromiso: {$a}';
@@ -80,7 +84,10 @@ $string['sendjustificantes_desc'] = 'Marque esta opción para enviar justificant
 $string['stepdata']            = 'Datos';
 $string['stephonor']           = 'Código de honor';
 $string['submitpledge']        = 'Enviar compromiso';
+$string['textnotavailable']    = 'No se conserva el texto de esta versión: se modificó posteriormente y no se guardó el contenido original.';
+$string['textnotrecorded']     = 'No se registró la versión del texto para esta aceptación (es anterior a esta funcionalidad).';
 $string['timeaccepted']        = 'Fecha de aceptación del código de honor';
 $string['timeconsented']       = 'Fecha de consentimiento de datos';
 $string['usernotfound']        = 'Usuario no encontrado';
 $string['viewpledges']         = 'Ver compromisos';
+$string['viewtext']            = 'Ver';

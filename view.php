@@ -95,6 +95,7 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
         get_string('timeconsented', 'pledge'),
         get_string('consentversioncol', 'pledge'),
         get_string('timeaccepted', 'pledge'),
+        get_string('acceptedtexts', 'pledge'),
         get_string('delete', 'pledge'),
     ];
 
@@ -137,7 +138,21 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
                 );
             }
 
-            $row = [$fullname, $consented, $consentstatus, userdate($record->timeaccepted), $deleteaction];
+            // Enlace al visor con el texto exacto que aceptó este usuario.
+            $viewurl = new moodle_url('/mod/pledge/viewtext.php', [
+                'id' => $cm->id,
+                'acceptanceid' => $record->id,
+            ]);
+            $viewlink = html_writer::link($viewurl, get_string('viewtext', 'pledge'));
+
+            $row = [
+                $fullname,
+                $consented,
+                $consentstatus,
+                userdate($record->timeaccepted),
+                $viewlink,
+                $deleteaction,
+            ];
             $table->data[] = $row;
         }
         echo html_writer::table($table);
@@ -185,8 +200,10 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     // timeaccepted = momento de aceptar el código de honor (paso 2).
     // consenttime  = momento real en que se consintió el tratamiento de datos (paso 1);
     // se recupera de la sesión y, como salvaguarda, cae a time() si no está disponible.
-    // consentversion = hash del texto de consentimiento vigente, para saber qué versión aceptó.
+    // consentversion / honorversion = hash de cada texto aceptado; pledge_store_text_version
+    // guarda además el contenido exacto para poder recuperarlo después.
     $dataconsent = get_config('mod_pledge', 'dataconsent');
+    $honorcode = get_config('mod_pledge', 'globalhonorcode');
     $consenttime = !empty($SESSION->pledge_consenttime[$pledge->id])
         ? $SESSION->pledge_consenttime[$pledge->id]
         : time();
@@ -195,7 +212,8 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     $record->userid         = $USER->id;
     $record->timeaccepted   = time();
     $record->consenttime    = $consenttime;
-    $record->consentversion = sha1((string)$dataconsent);
+    $record->consentversion = pledge_store_text_version($dataconsent);
+    $record->honorversion   = pledge_store_text_version($honorcode);
     $DB->insert_record('pledge_acceptance', $record);
     unset($SESSION->pledge_consenttime[$pledge->id]);
 

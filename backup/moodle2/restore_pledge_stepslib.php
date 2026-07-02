@@ -38,6 +38,10 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
         $paths[] = new restore_path_element('pledge', '/activity/pledge');
         if ($userinfo) {
             $paths[] = new restore_path_element('pledge_acceptance', '/activity/pledge/acceptances/acceptance');
+            $paths[] = new restore_path_element(
+                'pledge_textversion',
+                '/activity/pledge/textversions/textversion'
+            );
         }
 
         return $this->prepare_activity_structure($paths);
@@ -95,6 +99,25 @@ class restore_pledge_activity_structure_step extends restore_activity_structure_
             if ($existing) {
                 $this->set_mapping('pledge_acceptance', $oldid, $existing->id);
             }
+        }
+    }
+
+    /**
+     * Process the restore of a text version record.
+     *
+     * Se indexan por hash de contenido; si la versión ya existe no se duplica.
+     *
+     * @param array $data The text version data to restore.
+     * @return void
+     */
+    protected function process_pledge_textversion($data) {
+        global $DB;
+
+        $data = (object)$data;
+
+        if (!$DB->record_exists('pledge_textversion', ['contenthash' => $data->contenthash])) {
+            unset($data->id);
+            $DB->insert_record('pledge_textversion', $data);
         }
     }
 

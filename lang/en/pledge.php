@@ -24,6 +24,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['accept']    = 'I accept the pledge';
+$string['acceptedconsenttext'] = 'Accepted data processing consent';
+$string['acceptedhonortext'] = 'Accepted honor code';
+$string['acceptedtexts'] = 'Accepted texts';
+$string['acceptedtextsfor'] = 'Texts accepted by {$a}';
 $string['acceptpledge']        = 'Accept Pledge';
 $string['activity'] = 'Activity';
 $string['allow'] = 'Allow';
@@ -87,8 +91,11 @@ $string['sendjustificantes_desc'] = 'Check this option to send supporting docume
 $string['stepdata'] = 'Data';
 $string['stephonor'] = 'Honor code';
 $string['submitpledge']        = 'Submit Pledge';
+$string['textnotavailable'] = 'The text of this version is not kept: it was changed later and the original content was not stored.';
+$string['textnotrecorded'] = 'No text version was recorded for this acceptance (it predates this feature).';
 $string['timeaccepted'] = 'Honor code acceptance date';
 $string['timeconsented'] = 'Data consent date';
 $string['to'] = 'to';
 $string['usernotfound'] = 'User not found';
 $string['viewpledges']         = 'View Pledges';
+$string['viewtext'] = 'View';

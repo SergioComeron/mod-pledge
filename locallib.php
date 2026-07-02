@@ -136,3 +136,57 @@ function pledge_render_consent_step($step, $variant, $title, $subtitle, $bodyhtm
     $card = html_writer::div($head . $bodywrap, 'card pledge-consent-card');
     return html_writer::div($stepper . $card, 'pledge-consent');
 }
+
+/**
+ * Store a text version (by content hash) so the exact accepted text can be retrieved later.
+ *
+ * Guarda el contenido una sola vez por hash: si ya existe esa versión no la duplica.
+ * Un texto vacío no se almacena (su hash no referenciará ninguna fila).
+ *
+ * @param string $content Contenido HTML del texto (consentimiento o código de honor).
+ * @return string El hash SHA-1 del contenido (aunque no se haya almacenado por estar vacío).
+ */
+function pledge_store_text_version($content) {
+    global $DB;
+
+    $content = (string)$content;
+    $hash = sha1($content);
+
+    if ($content === '') {
+        return $hash;
+    }
+
+    if (!$DB->record_exists('pledge_textversion', ['contenthash' => $hash])) {
+        $record = new stdClass();
+        $record->contenthash = $hash;
+        $record->content = $content;
+        $record->timecreated = time();
+        // Puede haber carreras entre peticiones simultáneas con el mismo hash; ignoramos el duplicado.
+        try {
+            $DB->insert_record('pledge_textversion', $record);
+        } catch (dml_exception $e) {
+            if (!$DB->record_exists('pledge_textversion', ['contenthash' => $hash])) {
+                throw $e;
+            }
+        }
+    }
+
+    return $hash;
+}
+
+/**
+ * Retrieve the stored text for a given content hash.
+ *
+ * @param string|null $hash Hash SHA-1 almacenado en pledge_acceptance.
+ * @return string|null El contenido HTML, o null si no se conserva esa versión.
+ */
+function pledge_get_text_version($hash) {
+    global $DB;
+
+    if (empty($hash)) {
+        return null;
+    }
+
+    $content = $DB->get_field('pledge_textversion', 'content', ['contenthash' => $hash]);
+    return $content === false ? null : $content;
+}

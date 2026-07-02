@@ -48,18 +48,28 @@ class backup_pledge_activity_structure_step extends backup_activity_structure_st
         // Define child element for acceptances.
         $acceptances = new backup_nested_element('acceptances');
         $acceptance = new backup_nested_element('acceptance', ['id'], [
-            'pledgeid', 'userid', 'timeaccepted', 'justificante', 'consenttime', 'consentversion',
+            'pledgeid', 'userid', 'timeaccepted', 'justificante', 'consenttime', 'consentversion', 'honorversion',
+        ]);
+
+        // Define child element for the accepted text versions (linked by content hash).
+        $textversions = new backup_nested_element('textversions');
+        $textversion = new backup_nested_element('textversion', ['id'], [
+            'contenthash', 'content', 'timecreated',
         ]);
 
         // Build the tree structure.
         $pledge->add_child($acceptances);
         $acceptances->add_child($acceptance);
+        $pledge->add_child($textversions);
+        $textversions->add_child($textversion);
 
         // Define sources.
         $pledge->set_source_table('pledge', ['id' => backup::VAR_ACTIVITYID]);
 
         if ($userinfo) {
             $acceptance->set_source_table('pledge_acceptance', ['pledgeid' => '../../id']);
+            // El contenido de los textos aceptados es parte del registro de cumplimiento.
+            $textversion->set_source_table('pledge_textversion', []);
         }
 
         $acceptance->annotate_ids('user', 'userid');

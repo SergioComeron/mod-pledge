@@ -32,7 +32,7 @@
  * @return bool
  */
 function xmldb_pledge_upgrade($oldversion) {
-    global $DB;
+    global $DB, $CFG;
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2025051000) {
@@ -94,6 +94,36 @@ function xmldb_pledge_upgrade($oldversion) {
 
         // Pledge savepoint reached.
         upgrade_mod_savepoint(true, 2026070200, 'pledge');
+    }
+
+    if ($oldversion < 2026070206) {
+        // Campo con el hash del código de honor aceptado.
+        $table = new xmldb_table('pledge_acceptance');
+        $field = new xmldb_field('honorversion', XMLDB_TYPE_CHAR, '40', null, null, null, null, 'consentversion');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Tabla con el contenido de cada versión de texto aceptada, indexada por hash.
+        $texttable = new xmldb_table('pledge_textversion');
+        if (!$dbman->table_exists($texttable)) {
+            $texttable->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $texttable->add_field('contenthash', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null);
+            $texttable->add_field('content', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+            $texttable->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $texttable->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $texttable->add_index('contenthash_idx', XMLDB_INDEX_UNIQUE, ['contenthash']);
+            $dbman->create_table($texttable);
+        }
+
+        // Backfill: guardar el texto vigente de ambos ajustes para que las aceptaciones
+        // existentes cuyo hash coincida con el texto actual sean recuperables.
+        require_once($CFG->dirroot . '/mod/pledge/locallib.php');
+        pledge_store_text_version(get_config('mod_pledge', 'dataconsent'));
+        pledge_store_text_version(get_config('mod_pledge', 'globalhonorcode'));
+
+        // Pledge savepoint reached.
+        upgrade_mod_savepoint(true, 2026070206, 'pledge');
     }
 
     return true;
