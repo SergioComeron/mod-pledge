@@ -75,3 +75,64 @@ function pledge_update_calendar(stdClass $pledge, $cmid) {
     }
     return true;
 }
+
+/**
+ * Render one of the visual acceptance steps (data consent / honor code).
+ *
+ * Produce una tarjeta moderna con indicador de pasos, cabecera con icono y el
+ * formulario integrado. Usa clases de Bootstrap comunes a Moodle 4.x y 5.x.
+ *
+ * @param int    $step     Número de paso actual (1 o 2).
+ * @param string $variant  'data' (consentimiento) u 'honor' (código de honor).
+ * @param string $title    Título del paso.
+ * @param string $subtitle Subtítulo breve bajo el título.
+ * @param string $bodyhtml Cuerpo ya formateado como HTML (salida de format_text).
+ * @param string $formhtml HTML del formulario renderizado.
+ * @return string HTML de la pantalla.
+ */
+function pledge_render_consent_step($step, $variant, $title, $subtitle, $bodyhtml, $formhtml) {
+    // Indicador de pasos.
+    $steps = [
+        1 => get_string('stepdata', 'pledge'),
+        2 => get_string('stephonor', 'pledge'),
+    ];
+    $stepperitems = '';
+    foreach ($steps as $num => $label) {
+        if ($num > 1) {
+            $stepperitems .= html_writer::span('', 'pledge-step-line');
+        }
+        $class = 'pledge-step';
+        $circle = (string)$num;
+        if ($num < $step) {
+            $class .= ' is-done';
+            $circle = html_writer::tag('i', '', ['class' => 'fa fa-check']);
+        } else if ($num === $step) {
+            $class .= ' is-active';
+        }
+        $stepperitems .= html_writer::tag(
+            'span',
+            html_writer::span($circle, 'pledge-step-circle') . html_writer::span(s($label), 'pledge-step-label'),
+            ['class' => $class]
+        );
+    }
+    $stepper = html_writer::div($stepperitems, 'pledge-stepper');
+
+    // Cabecera con icono.
+    $icons = ['data' => 'fa fa-user-shield', 'honor' => 'fa fa-file-signature'];
+    $headclass = 'pledge-consent-head' . ($variant === 'honor' ? ' pledge-head-honor' : '');
+    $iconhtml = html_writer::span(
+        html_writer::tag('i', '', ['class' => $icons[$variant] ?? $icons['data']]),
+        'pledge-consent-icon'
+    );
+    $titlehtml = html_writer::tag('h2', s($title), ['class' => 'pledge-consent-title'])
+        . html_writer::tag('p', s($subtitle), ['class' => 'pledge-consent-subtitle']);
+    $head = html_writer::div($iconhtml . html_writer::div($titlehtml), $headclass);
+
+    // Cuerpo: texto informativo + formulario.
+    $body = html_writer::div($bodyhtml, 'pledge-consent-text');
+    $body .= html_writer::div($formhtml, 'pledge-consent-form');
+    $bodywrap = html_writer::div($body, 'card-body pledge-consent-body');
+
+    $card = html_writer::div($head . $bodywrap, 'card pledge-consent-card');
+    return html_writer::div($stepper . $card, 'pledge-consent');
+}

@@ -24,11 +24,12 @@
 
 require_once(dirname($_SERVER['SCRIPT_FILENAME'], 3) . '/config.php');
 require_once(dirname(__FILE__) . '/lib.php');
+require_once(dirname(__FILE__) . '/locallib.php');
 require_once("$CFG->libdir/formslib.php");
 
 // Configurar la página (ten en cuenta que debes ajustar el contexto y otros parámetros según corresponda).
 
-global $USER;
+global $USER, $SESSION;
 
 $id = required_param('id', PARAM_INT);
 
@@ -82,17 +83,21 @@ $mform = new \mod_pledge\form\accept_form($PAGE->url);
 if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     echo $OUTPUT->header();
 
+    // Hash del texto de consentimiento vigente, para detectar aceptaciones de versiones anteriores.
+    $currentconsenthash = sha1((string)get_config('mod_pledge', 'dataconsent'));
+
+    $records = $DB->get_records('pledge_acceptance', ['pledgeid' => $pledge->id]);
+
     // Mostrar una tabla con todos los pledge aceptados para este pledge.
     $table = new html_table();
-    // Se añade columna extra para la eliminación.
     $table->head = [
         get_string('user'),
-        get_string('timeaccepted', 'pledge'),
         get_string('timeconsented', 'pledge'),
+        get_string('consentversioncol', 'pledge'),
+        get_string('timeaccepted', 'pledge'),
         get_string('delete', 'pledge'),
     ];
 
-    $records = $DB->get_records('pledge_acceptance', ['pledgeid' => $pledge->id]);
     if ($records) {
         foreach ($records as $record) {
             $user = $DB->get_record(
@@ -112,7 +117,28 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
                 ['onclick' => 'return confirm("' . get_string('confirmdelete', 'pledge') . '");']
             );
             $consented = !empty($record->consenttime) ? userdate($record->consenttime) : '-';
-            $table->data[] = [$fullname, userdate($record->timeaccepted), $consented, $deleteaction];
+
+            // Estado de la versión del consentimiento aceptada.
+            if (empty($record->consentversion)) {
+                $consentstatus = '-';
+            } else if ($record->consentversion === $currentconsenthash) {
+                $consentstatus = html_writer::tag(
+                    'span',
+                    html_writer::tag('i', '', ['class' => 'fa fa-check-circle']) . ' '
+                    . get_string('consentcurrent', 'pledge'),
+                    ['class' => 'text-success']
+                );
+            } else {
+                $consentstatus = html_writer::tag(
+                    'span',
+                    html_writer::tag('i', '', ['class' => 'fa fa-exclamation-triangle']) . ' '
+                    . get_string('consentoutdated', 'pledge'),
+                    ['class' => 'text-warning']
+                );
+            }
+
+            $row = [$fullname, $consented, $consentstatus, userdate($record->timeaccepted), $deleteaction];
+            $table->data[] = $row;
         }
         echo html_writer::table($table);
     } else {
@@ -121,7 +147,10 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
 } else if ($DB->record_exists('pledge_acceptance', ['pledgeid' => $pledge->id, 'userid' => $USER->id])) {
     echo $OUTPUT->header();
     // Si el usuario ya ha aceptado, mostramos el mensaje correspondiente.
-    echo html_writer::tag('p', get_string('alreadyaccepted', 'pledge'));
+    $alreadyhtml = html_writer::div(
+        html_writer::tag('i', '', ['class' => 'fa fa-info-circle']) . ' ' . get_string('alreadyaccepted', 'pledge'),
+        'alert alert-info'
+    );
     if (!empty($pledge->linkedactivity)) {
         // Supongamos que linkedactivity almacena el id del course module.
         $cmactivity = $DB->get_record('course_modules', ['id' => $pledge->linkedactivity], '*', MUST_EXIST);
@@ -129,33 +158,46 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
         $moduleinfo = $DB->get_record('modules', ['id' => $cmactivity->module], 'name', MUST_EXIST);
         // Construir la URL: usualmente es /mod/<modulename>/view.php?id=<course_module_id>.
         $activityurl = new moodle_url('/mod/' . $moduleinfo->name . '/view.php', ['id' => $cmactivity->id]);
-        echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
+        $alreadyhtml .= html_writer::div(
+            html_writer::link($activityurl, get_string('linkedactivity', 'pledge'), ['class' => 'btn btn-primary']),
+            'text-center'
+        );
     }
+    echo html_writer::div($alreadyhtml, 'pledge-consent');
 } else if ($data = $mform->get_data()) {
     // Salvaguarda: no registramos nada si no consta el consentimiento del paso 1.
     if (empty($data->consentgiven)) {
         echo $OUTPUT->header();
         $dataconsent = get_config('mod_pledge', 'dataconsent');
-        if (!empty($dataconsent)) {
-            echo html_writer::start_tag('div', ['class' => 'card my-3']);
-            echo html_writer::tag('div', format_text($dataconsent, FORMAT_HTML), ['class' => 'card-body']);
-            echo html_writer::end_tag('div');
-        }
-        $consentform->display();
+        echo pledge_render_consent_step(
+            1,
+            'data',
+            get_string('consentstep1title', 'pledge'),
+            get_string('consentstep1subtitle', 'pledge'),
+            !empty($dataconsent) ? format_text($dataconsent, FORMAT_HTML) : '',
+            $consentform->render()
+        );
         echo $OUTPUT->footer();
         exit;
     }
 
     // Guardamos el registro de aceptación junto con la prueba del consentimiento.
+    // timeaccepted = momento de aceptar el código de honor (paso 2).
+    // consenttime  = momento real en que se consintió el tratamiento de datos (paso 1);
+    // se recupera de la sesión y, como salvaguarda, cae a time() si no está disponible.
     // consentversion = hash del texto de consentimiento vigente, para saber qué versión aceptó.
     $dataconsent = get_config('mod_pledge', 'dataconsent');
+    $consenttime = !empty($SESSION->pledge_consenttime[$pledge->id])
+        ? $SESSION->pledge_consenttime[$pledge->id]
+        : time();
     $record = new stdClass();
     $record->pledgeid       = $pledge->id;
     $record->userid         = $USER->id;
     $record->timeaccepted   = time();
-    $record->consenttime    = time();
+    $record->consenttime    = $consenttime;
     $record->consentversion = sha1((string)$dataconsent);
     $DB->insert_record('pledge_acceptance', $record);
+    unset($SESSION->pledge_consenttime[$pledge->id]);
 
     if (get_config('mod_pledge', 'sendjustificantes')) {
         // Lanzar la tarea sendjustification.
@@ -174,37 +216,50 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     $completion = new completion_info($course);
     $completion->set_module_viewed($cm);
     echo $OUTPUT->header();
-    echo html_writer::tag('p', get_string('pledgeaccepted', 'pledge'));
-
-    // Si hay actividad vinculada y se desea mostrar un enlace para entrar, se puede dejar opcional.
+    $successhtml = html_writer::div(
+        html_writer::tag('i', '', ['class' => 'fa fa-check-circle']) . ' ' . get_string('pledgeaccepted', 'pledge'),
+        'alert alert-success'
+    );
+    // Si hay actividad vinculada, mostramos un botón para entrar.
     if (!empty($pledge->linkedactivity)) {
         $cmactivity = $DB->get_record('course_modules', ['id' => $pledge->linkedactivity], '*', MUST_EXIST);
         $moduleinfo = $DB->get_record('modules', ['id' => $cmactivity->module], 'name', MUST_EXIST);
         $activityurl = new moodle_url('/mod/' . $moduleinfo->name . '/view.php', ['id' => $cmactivity->id]);
-        echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
+        $successhtml .= html_writer::div(
+            html_writer::link($activityurl, get_string('linkedactivity', 'pledge'), ['class' => 'btn btn-primary']),
+            'text-center'
+        );
     }
+    echo html_writer::div($successhtml, 'pledge-consent');
 } else if ($consentform->get_data()) {
-    // Paso 2: el consentimiento ya se otorgó; mostramos el código de honor.
+    // Paso 2: el consentimiento ya se otorgó. Sellamos el momento real del consentimiento
+    // (paso 1) en la sesión para guardarlo al confirmar el código de honor. Se hace en el
+    // servidor (no en un campo oculto) para que no sea manipulable por el usuario.
+    if (empty($SESSION->pledge_consenttime[$pledge->id])) {
+        $SESSION->pledge_consenttime[$pledge->id] = time();
+    }
     echo $OUTPUT->header();
     $globalhonorcode = get_config('mod_pledge', 'globalhonorcode');
-    if (!empty($globalhonorcode)) {
-        echo html_writer::start_tag('div', ['class' => 'card my-3']);
-        echo html_writer::tag('div', format_text($globalhonorcode), ['class' => 'card-body']);
-        echo html_writer::end_tag('div');
-    }
-    // Se muestra el formulario de aceptación del código de honor.
-    $mform->display();
+    echo pledge_render_consent_step(
+        2,
+        'honor',
+        get_string('consentstep2title', 'pledge'),
+        get_string('consentstep2subtitle', 'pledge'),
+        !empty($globalhonorcode) ? format_text($globalhonorcode) : '',
+        $mform->render()
+    );
 } else {
     // Paso 1: información y consentimiento del tratamiento de datos.
     echo $OUTPUT->header();
     $dataconsent = get_config('mod_pledge', 'dataconsent');
-    if (!empty($dataconsent)) {
-        echo html_writer::start_tag('div', ['class' => 'card my-3']);
-        echo html_writer::tag('div', format_text($dataconsent, FORMAT_HTML), ['class' => 'card-body']);
-        echo html_writer::end_tag('div');
-    }
-    // Se muestra el formulario de consentimiento.
-    $consentform->display();
+    echo pledge_render_consent_step(
+        1,
+        'data',
+        get_string('consentstep1title', 'pledge'),
+        get_string('consentstep1subtitle', 'pledge'),
+        !empty($dataconsent) ? format_text($dataconsent, FORMAT_HTML) : '',
+        $consentform->render()
+    );
 }
 
 echo $OUTPUT->footer();

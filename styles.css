@@ -1,0 +1,131 @@
+/* mod_pledge - Pantallas de consentimiento y código de honor. */
+
+.pledge-consent {
+    max-width: 760px;
+    margin: 1.5rem auto;
+}
+
+/* Indicador de pasos. */
+.pledge-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.75rem;
+}
+
+.pledge-stepper .pledge-step {
+    display: inline-flex;
+    align-items: center;
+    color: #6c757d;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.pledge-stepper .pledge-step-circle {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9ecef;
+    color: #6c757d;
+    font-weight: 700;
+    margin: 0 0.5rem;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.pledge-stepper .pledge-step.is-active .pledge-step-circle {
+    background: #0d6efd;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+}
+
+.pledge-stepper .pledge-step.is-active {
+    color: #0d6efd;
+}
+
+.pledge-stepper .pledge-step.is-done .pledge-step-circle {
+    background: #198754;
+    color: #fff;
+}
+
+.pledge-stepper .pledge-step.is-done {
+    color: #198754;
+}
+
+.pledge-stepper .pledge-step-line {
+    width: 3.5rem;
+    height: 2px;
+    background: #dee2e6;
+    margin: 0 0.5rem;
+}
+
+/* Tarjeta principal. */
+.pledge-consent-card {
+    border: none;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.pledge-consent-card .pledge-consent-head {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, #0d6efd, #6610f2);
+    color: #fff;
+}
+
+.pledge-consent-card .pledge-consent-head.pledge-head-honor {
+    background: linear-gradient(135deg, #198754, #0dcaf0);
+}
+
+.pledge-consent-card .pledge-consent-icon {
+    flex: 0 0 auto;
+    width: 3.25rem;
+    height: 3.25rem;
+    margin-right: 1rem;
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.pledge-consent-card .pledge-consent-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #fff;
+}
+
+.pledge-consent-card .pledge-consent-subtitle {
+    margin: 0.2rem 0 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.pledge-consent-card .pledge-consent-body {
+    padding: 1.75rem;
+}
+
+.pledge-consent-card .pledge-consent-text {
+    line-height: 1.6;
+}
+
+.pledge-consent-card .pledge-consent-form {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e9ecef;
+}
+
+/* El botón de continuar destaca como acción principal. */
+.pledge-consent-card .pledge-consent-form .btn-primary {
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
