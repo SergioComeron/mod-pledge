@@ -31,6 +31,9 @@
                 <!-- Nuevo campo para el justificante, guardando el timestamp en el que se envía.
                      Se permite valor nulo para indicar que aún no se ha enviado -->
                 <FIELD NAME="justificante" TYPE="int" LENGTH="10" NOTNULL="false" />
+                <!-- Prueba del consentimiento del tratamiento de datos (RGPD). -->
+                <FIELD NAME="consenttime" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Timestamp en el que el usuario otorgó el consentimiento del tratamiento de datos"/>
+                <FIELD NAME="consentversion" TYPE="char" LENGTH="40" NOTNULL="false" COMMENT="Hash SHA-1 del texto de consentimiento aceptado, para saber qué versión otorgó"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

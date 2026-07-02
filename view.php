@@ -30,42 +30,6 @@ require_once("$CFG->libdir/formslib.php");
 
 global $USER;
 
-/**
- * Form displayed to accept a pledge.
- *
- * @package   mod_pledge
- * @copyright 2025 Sergio Comerón <info@sergiocomeron.com>
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class accept_form extends moodleform {
-    /**
-     * Define the acceptance form elements.
-     *
-     * @return void
-     */
-    public function definition() {
-        global $CFG;
-        $mform = $this->_form; // No olvides la barra baja.
-        $mform->addElement('checkbox', 's', get_string('accept', 'pledge'));
-        $mform->addRule('s', get_string('needaccept', 'pledge'), 'required', null, 'client');
-
-        $buttonarray = [];
-        $buttonarray[] = $mform->createElement('submit', 'submitbutton', get_string('continue', 'pledge'));
-        $mform->addGroup($buttonarray, 'buttonar', '', ' ', false);
-    }
-
-    /**
-     * Validate the submitted form data.
-     *
-     * @param array $data Submitted data.
-     * @param array $files Submitted files.
-     * @return array Array of validation errors.
-     */
-    public function validation($data, $files) {
-        return [];
-    }
-}
-
 $id = required_param('id', PARAM_INT);
 
 $cm = get_coursemodule_from_id('pledge', $id, 0, false, MUST_EXIST);
@@ -112,7 +76,8 @@ if ($deleteid && confirm_sesskey()) {
     redirect($PAGE->url, get_string('deleted', 'pledge'));
 }
 
-$mform = new accept_form($PAGE->url);
+$consentform = new \mod_pledge\form\consent_form($PAGE->url);
+$mform = new \mod_pledge\form\accept_form($PAGE->url);
 
 if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     echo $OUTPUT->header();
@@ -120,7 +85,12 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
     // Mostrar una tabla con todos los pledge aceptados para este pledge.
     $table = new html_table();
     // Se añade columna extra para la eliminación.
-    $table->head = [get_string('user'), get_string('timeaccepted', 'pledge'), get_string('delete', 'pledge')];
+    $table->head = [
+        get_string('user'),
+        get_string('timeaccepted', 'pledge'),
+        get_string('timeconsented', 'pledge'),
+        get_string('delete', 'pledge'),
+    ];
 
     $records = $DB->get_records('pledge_acceptance', ['pledgeid' => $pledge->id]);
     if ($records) {
@@ -141,7 +111,8 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
                 get_string('delete', 'pledge'),
                 ['onclick' => 'return confirm("' . get_string('confirmdelete', 'pledge') . '");']
             );
-            $table->data[] = [$fullname, userdate($record->timeaccepted), $deleteaction];
+            $consented = !empty($record->consenttime) ? userdate($record->consenttime) : '-';
+            $table->data[] = [$fullname, userdate($record->timeaccepted), $consented, $deleteaction];
         }
         echo html_writer::table($table);
     } else {
@@ -161,11 +132,29 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
         echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
     }
 } else if ($data = $mform->get_data()) {
-    // Guardamos el registro de aceptación.
+    // Salvaguarda: no registramos nada si no consta el consentimiento del paso 1.
+    if (empty($data->consentgiven)) {
+        echo $OUTPUT->header();
+        $dataconsent = get_config('mod_pledge', 'dataconsent');
+        if (!empty($dataconsent)) {
+            echo html_writer::start_tag('div', ['class' => 'card my-3']);
+            echo html_writer::tag('div', format_text($dataconsent, FORMAT_HTML), ['class' => 'card-body']);
+            echo html_writer::end_tag('div');
+        }
+        $consentform->display();
+        echo $OUTPUT->footer();
+        exit;
+    }
+
+    // Guardamos el registro de aceptación junto con la prueba del consentimiento.
+    // consentversion = hash del texto de consentimiento vigente, para saber qué versión aceptó.
+    $dataconsent = get_config('mod_pledge', 'dataconsent');
     $record = new stdClass();
-    $record->pledgeid     = $pledge->id;
-    $record->userid       = $USER->id;
-    $record->timeaccepted = time();
+    $record->pledgeid       = $pledge->id;
+    $record->userid         = $USER->id;
+    $record->timeaccepted   = time();
+    $record->consenttime    = time();
+    $record->consentversion = sha1((string)$dataconsent);
     $DB->insert_record('pledge_acceptance', $record);
 
     if (get_config('mod_pledge', 'sendjustificantes')) {
@@ -194,17 +183,28 @@ if (has_capability('mod/pledge:viewattempts', $contextmodule)) {
         $activityurl = new moodle_url('/mod/' . $moduleinfo->name . '/view.php', ['id' => $cmactivity->id]);
         echo html_writer::tag('p', html_writer::link($activityurl, get_string('linkedactivity', 'pledge')));
     }
-} else {
+} else if ($consentform->get_data()) {
+    // Paso 2: el consentimiento ya se otorgó; mostramos el código de honor.
     echo $OUTPUT->header();
-    // Mostrar el mensaje del código de honor guardado en globalhonorcode en una caja bonita.
     $globalhonorcode = get_config('mod_pledge', 'globalhonorcode');
     if (!empty($globalhonorcode)) {
         echo html_writer::start_tag('div', ['class' => 'card my-3']);
         echo html_writer::tag('div', format_text($globalhonorcode), ['class' => 'card-body']);
         echo html_writer::end_tag('div');
     }
-    // Si aún no se ha aceptado, se muestra el formulario.
+    // Se muestra el formulario de aceptación del código de honor.
     $mform->display();
+} else {
+    // Paso 1: información y consentimiento del tratamiento de datos.
+    echo $OUTPUT->header();
+    $dataconsent = get_config('mod_pledge', 'dataconsent');
+    if (!empty($dataconsent)) {
+        echo html_writer::start_tag('div', ['class' => 'card my-3']);
+        echo html_writer::tag('div', format_text($dataconsent, FORMAT_HTML), ['class' => 'card-body']);
+        echo html_writer::end_tag('div');
+    }
+    // Se muestra el formulario de consentimiento.
+    $consentform->display();
 }
 
 echo $OUTPUT->footer();

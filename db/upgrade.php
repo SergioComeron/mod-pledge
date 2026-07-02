@@ -76,5 +76,25 @@ function xmldb_pledge_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2025111201, 'pledge');
     }
 
+    if ($oldversion < 2026070200) {
+        // Añadir la prueba del consentimiento del tratamiento de datos (RGPD).
+        $table = new xmldb_table('pledge_acceptance');
+
+        // Define field consenttime to be added to pledge_acceptance.
+        $field = new xmldb_field('consenttime', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'justificante');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field consentversion to be added to pledge_acceptance.
+        $field = new xmldb_field('consentversion', XMLDB_TYPE_CHAR, '40', null, null, null, null, 'consenttime');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Pledge savepoint reached.
+        upgrade_mod_savepoint(true, 2026070200, 'pledge');
+    }
+
     return true;
 }

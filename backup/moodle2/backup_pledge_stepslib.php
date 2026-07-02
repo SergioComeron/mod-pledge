@@ -48,7 +48,7 @@ class backup_pledge_activity_structure_step extends backup_activity_structure_st
         // Define child element for acceptances.
         $acceptances = new backup_nested_element('acceptances');
         $acceptance = new backup_nested_element('acceptance', ['id'], [
-            'pledgeid', 'userid', 'timeaccepted', 'justificante',
+            'pledgeid', 'userid', 'timeaccepted', 'justificante', 'consenttime', 'consentversion',
         ]);
 
         // Build the tree structure.
