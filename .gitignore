@@ -1,0 +1,6 @@
+# Dev-only tools (phpcs/moodle-cs) pulled in by composer.json.
+/vendor/
+node_modules/
+
+# Local Claude Code state (CLAUDE.md itself IS tracked).
+.claude/

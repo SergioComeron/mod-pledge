@@ -1,0 +1,12 @@
+{
+    "name": "sergiocomeron/moodle-mod_pledge",
+    "description": "Moodle Pledge activity module - dev dependencies",
+    "require-dev": {
+        "moodlehq/moodle-cs": "*"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

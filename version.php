@@ -28,5 +28,5 @@ $plugin->version = 2025111201;
 $plugin->requires = 2021051700;
 $plugin->component = 'mod_pledge';
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = 'v1.0';
+$plugin->release = '1.0.0';
 
